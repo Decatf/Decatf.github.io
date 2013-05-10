@@ -1,0 +1,272 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title></title>
+	 <link rel="stylesheet" type="text/css" href="css/StyleSheet.css"/>
+    <script src="js/jquery-1.9.1.js"></script>
+    <script src="js/d3.js"></script>
+    <script src="js/finance.js"></script>
+    <script src="ChartsLib.js"></script>
+    
+    
+    <script  type="text/javascript">
+        function symbolButton() {
+            symbol = document.getElementById("symbol_textbox").value;
+            //CallService(symbol);
+            GetYahooData(symbol);
+        }
+        
+        var wcf_error = false;
+
+        var patterns;
+        var segments = [];
+        var visibleSegments = [];
+
+        function parsePatternJson(data) {
+            var obj = JSON.parse(data);
+            patterns = obj;            
+
+            segments = [];
+            visibleSegments = [];
+
+            for (var i = 0; i < obj.length; i++) {
+                var pattern = obj[i];
+                var name = pattern["Name"];
+                
+                // Add pattern names to sidebar list
+                $("<li>")
+                    .attr("class", "pattern_item")
+                    .attr("onmouseover", "listItemMouseOver(this)")
+                    .attr("onmouseout", "listItemMouseOut(this)")
+                    .attr("onclick", "listItemClick(this)")
+                    .attr("segment_id", i)
+                    .append(name)
+                    .appendTo("#pattern_list");                    
+
+                for (var j = 0; j < pattern["PointCount"] - 1; j++) {
+                    var seg = segmentData(pattern["PointDates"][j], pattern["PointDates"][j + 1]);
+                    seg.push(i);    // segment id
+                    if (seg.length == 3) segments.push(seg);                   
+                }
+                //console.log(segments);
+            }
+        }
+
+        function parsePatternBreakouts(data) {
+            var rows = data.split("\r\n");
+            for (var i = 1; i < rows.length; i++) {
+                var entries = rows[i].split("\t");
+                var pb = new PatternBreakouts(entries[0], entries[1]);
+                patternBreakouts.push(pb);
+            }
+
+        }
+
+        var patternBreakouts = [];
+
+        var PatternBreakouts = (function () {
+            // constructor
+            function PatternBreakouts(symbol, date) {
+                this._symbol = symbol;
+                this._date = date
+            };
+
+            // add the methods to the prototype so that all of the 
+            // Foo instances can access the private static
+            PatternBreakouts.prototype.getSymbol = function () {
+                return this._symbol;
+            };
+            PatternBreakouts.prototype.setSymbol = function (symbol) {
+                this._symbol = symbol;
+            };
+
+            PatternBreakouts.prototype.getDate = function () {
+                return this._date;
+            };
+            PatternBreakouts.prototype.setDate = function (date) {
+                this._date = date;
+            };
+
+            return PatternBreakouts;
+        })();
+
+        function getPatternBreakoutsByDate() {
+            // get an array of dates with symbol breakouts for each date
+            var dict = [];
+            var dates = [];
+            for (var i = 0; i < patternBreakouts.length; i++) {
+                var date = patternBreakouts[i].getDate();
+                var symbol = patternBreakouts[i].getSymbol();
+                if (dict[date] == null) {
+                    dict[date] = [];
+                }
+
+                if ($.inArray(date, dates) == -1) {
+                    dates.push(date);
+                }
+                if ($.inArray(symbol, dict[date]) == -1) {
+                    dict[date].push(symbol);
+                }                
+            }           
+
+            return { "dates": dates, "dict": dict }
+        }
+
+
+        function listItemMouseOver(item) {
+            item.style.backgroundColor = "AliceBlue";
+        }
+        function listItemMouseOut(item) {
+            item.style.backgroundColor = "";
+        }
+        function listItemClick(item) {
+            if (item.getAttribute("class") == "pattern_item") {
+                item.setAttribute("class", "pattern_item_selected");
+
+                var segment_id = item.getAttribute("segment_id");
+                var current_segment = segments.filter(function (element, index, array) {
+                    return element[2] == segment_id
+                });
+
+                for (var i = 0; i < current_segment.length; i++) {
+                    visibleSegments.push(current_segment[i]);
+                    segments.splice(segments.indexOf(current_segment[i]), 1);
+                }
+            }
+            else if (item.getAttribute("class") == "pattern_item_selected") {
+                item.setAttribute("class", "pattern_item");
+
+                var segment_id = item.getAttribute("segment_id");
+                var current_segment = visibleSegments.filter(function (element, index, array) {
+                    return element[2] == segment_id
+                });
+                for (var i = 0; i < current_segment.length; i++) {
+                    segments.push(current_segment[i]);
+                    visibleSegments.splice(visibleSegments.indexOf(current_segment[i]), 1);
+                }
+            }
+            drawSegments();
+        }
+
+        function breakoutDayItemClick(item) {
+            
+            var symbols = breakoutDayDict["dict"][item.textContent]
+            console.log(item.textContent);
+
+            $("#symbol_list .symbol_item").remove();
+
+            $(symbols).each(function (i) {
+                $("<li>")
+                    .attr("class", "symbol_item")
+                    .attr("onmouseover", "listItemMouseOver(this)")
+                    .attr("onmouseout", "listItemMouseOut(this)")
+                    .attr("onclick", "symbolItemClick(this)")
+                    .append(symbols[i])
+                    .appendTo("#symbol_list");
+            });
+        }
+
+        function symbolItemClick(item) {
+            CallService(item.textContent);
+            if (wcf_error == true) {
+                GetYahooData(item.textContent);
+            }
+        }
+
+        function drawSegments() {
+            var segmentLine = focus.selectAll("line.segment")
+                .data(visibleSegments);
+            segmentLine.attr("x1", function (d) { return x(data[d[0]].index); })
+                .attr("x2", function (d) { return x(data[d[1]].index); })
+                .attr("y1", function (d) { return y(data[d[0]].close); })
+                .attr("y2", function (d) { return y(data[d[1]].close); })
+            segmentLine.enter()
+                .append("svg:line")
+                .attr("class", "segment")
+                .attr("x1", function (d) { return x(data[d[0]].index); })
+                .attr("x2", function (d) { return x(data[d[1]].index); })
+                .attr("y1", function (d) { return y(data[d[0]].close); })
+                .attr("y2", function (d) { return y(data[d[1]].close); })
+                .attr("stroke", function (d) { return "blue"; })
+                .attr("clip-path", "url(#clip)")
+            segmentLine.exit().remove();
+        }
+
+        function segmentData(startDate, endDate) {
+            var startPoint = data.filter(function (element, index, array) {
+                return startDate == toIntDate(array[index].date);
+            });
+            var endPoint = data.filter(function (element, index, array) {
+                var x = endDate;
+                var y = toIntDate(array[index].date)
+                return x == y;
+            });
+
+            var segment = [];
+            if (startPoint.length == 1 && endPoint.length == 1) {
+                segment.push(startPoint[0].index);
+                segment.push(endPoint[0].index);
+            }
+            return segment;
+        }
+
+
+
+    </script>
+</head>
+<body>
+    Symbol: <input id="symbol_textbox" type="text" name="symbol"/>
+    <input type="submit" value="Submit" onclick="symbolButton()"/>
+
+    <p id="resultText"></p>
+    <!--p id="resultText" onclick="CallService('SPY')">Hello asdf</--!p>-->
+
+    <div id="sidebar"><ul id="pattern_list"></ul></div>
+    <div id="chart"></div>
+    <div id="symbols">
+        <table id="symbol_table">
+            <tr>
+                <td id="breakout_day_cell">
+                    <div style="height: 300px; padding-left: 10px; padding-right: 10px; overflow:scroll;">
+                        <ul id="breakout_date_list"></ul>
+                    </div>
+                </td>
+                <td>
+                    <div style="height: 300px; width: 100px; overflow:scroll;">
+                        <ul id="symbol_list"></ul>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <script type="text/javascript">
+        initChart();
+
+        var breakoutDayDict;
+
+        $.ajax({
+            url: "data/Breakouts.txt",
+            success: function (data) {
+                //console.log(data);
+                parsePatternBreakouts(data);
+                var dict = getPatternBreakoutsByDate();
+                breakoutDayDict = dict;
+
+                $(dict["dates"]).each(function (i) {
+                    $("<li>")
+                        .attr("class", "breakout_date_item")
+                        .attr("onmouseover", "listItemMouseOver(this)")
+                        .attr("onmouseout", "listItemMouseOut(this)")
+                        .attr("onclick", "breakoutDayItemClick(this)")
+                        .append(dict["dates"][i])
+                        .appendTo("#breakout_date_list");
+                });
+            }
+        });
+
+
+    </script>
+
+</body>
+</html>
