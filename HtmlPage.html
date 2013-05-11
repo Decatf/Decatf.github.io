@@ -245,26 +245,31 @@
 
         var breakoutDayDict;
 
-        $.ajax({
-            url: "data/Breakouts.txt",
-            success: function (data) {
-                //console.log(data);
-                parsePatternBreakouts(data);
-                var dict = getPatternBreakoutsByDate();
-                breakoutDayDict = dict;
+		try {
+			$.ajax({
+				url: "data/Breakouts.txt",
+				success: function (data) {
+					//console.log(data);
+					parsePatternBreakouts(data);
+					var dict = getPatternBreakoutsByDate();
+					breakoutDayDict = dict;
 
-                $(dict["dates"]).each(function (i) {
-                    $("<li>")
-                        .attr("class", "breakout_date_item")
-                        .attr("onmouseover", "listItemMouseOver(this)")
-                        .attr("onmouseout", "listItemMouseOut(this)")
-                        .attr("onclick", "breakoutDayItemClick(this)")
-                        .append(dict["dates"][i])
-                        .appendTo("#breakout_date_list");
-                });
-            }
-        });
-
+					$(dict["dates"]).each(function (i) {
+						$("<li>")
+							.attr("class", "breakout_date_item")
+							.attr("onmouseover", "listItemMouseOver(this)")
+							.attr("onmouseout", "listItemMouseOut(this)")
+							.attr("onclick", "breakoutDayItemClick(this)")
+							.append(dict["dates"][i])
+							.appendTo("#breakout_date_list");
+					});
+				}
+			});
+		}
+		catch (err)
+		{
+			console.log(err);
+		}
 
     </script>
 

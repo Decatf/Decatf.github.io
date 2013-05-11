@@ -1,0 +1,73 @@
+﻿#chart {    
+    /*text-align: center;*/
+}
+
+#sidebar {
+    width: 100px;
+    height: 600px;
+    float: left;
+}
+
+#pattern_list, #breakout_date_list, #symbol_list {
+    list-style-type: none;
+    margin-left: 0;
+    padding-left: 0;
+    cursor: pointer;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.pattern_item_selected {
+    background-color: aliceblue;
+}
+
+td#breakout_day_cell {
+    height: 500px;
+}
+
+path {
+	stroke: steelblue;
+	stroke-width: 0.05%;
+	fill: none;
+}
+
+line {
+	stroke: black;
+}
+
+#resultText {
+	font-family: Calibri,Arial;
+	font-size: 12pt;
+    text-align: center
+}
+        
+svg {
+    font: 10px sans-serif;
+}
+
+.axis path,
+.axis line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+}
+
+.brush .extent {
+    stroke: #fff;
+    fill-opacity: .125;
+    shape-rendering: crispEdges;
+}
+
+.overlay {
+    fill: none;
+    pointer-events: all;
+}
+
+line.cursor {
+    stroke: black;
+    stroke-opacity: 0.125;
+}
