@@ -62,7 +62,7 @@ svg {
     shape-rendering: crispEdges;
 }
 
-.overlay {
+.mouse_overlay {
     fill: none;
     pointer-events: all;
 }
@@ -70,4 +70,8 @@ svg {
 line.cursor {
     stroke: black;
     stroke-opacity: 0.125;
+}
+
+g.BarChart path.chart {
+	fill: rgba(127,201,127,0.5);
 }
