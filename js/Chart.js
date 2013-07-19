@@ -26,21 +26,20 @@ function ChartCollection(data, volume_data) {
     ChartCollection.prototype.update = function (width, height) {
         var chartCount = this.charts.length + 1;
         var chartWidth = (width * 2 / 3) - this.margin.left - this.margin.right;
-        var chartHeight = (height * 2 / 3) - (chartCount * this.margin.top) - this.margin.bottom;
+        var chartHeight = (height * 4 / 5) - (chartCount * this.margin.top) - this.margin.bottom;
         //var chartHeight = (height * 2 / 3) - this.margin.top - this.margin.bottom;
 
 
         this.chartContext.update(chartWidth, 0.10 * chartHeight, this.margin.left, this.margin.top + ((0.90 * chartHeight) + this.margin.top));
 
-        this.charts[0].svg
-            .attr("width", chartWidth + this.margin.left + this.margin.right)
-            .attr("height", chartHeight + (chartCount * this.margin.top) + this.margin.bottom);
+        this.svg.attr("width", chartWidth + this.margin.left + this.margin.right)
+                .attr("height", chartHeight + (chartCount * this.margin.top) + this.margin.bottom);
 
-        this.charts[0].update(chartWidth, 0.70 * chartHeight, this.margin.left, this.margin.top);
-        this.charts[0].onBrush(this.chartContext.brush);
+        this.charts[0].update.call(this.charts[0], chartWidth, 0.70 * chartHeight, this.margin.left, this.margin.top);
+        this.charts[0].onBrush.call(this.charts[0], this.chartContext.brush);
         this.charts[0].updateCursor();
-        this.charts[1].update(chartWidth, 0.20 * chartHeight, this.margin.left, this.margin.top + ((0.70 * chartHeight) + this.margin.top));
-        this.charts[1].onBrush(this.chartContext.brush);
+        this.charts[1].update.call(this.charts[1], chartWidth, 0.20 * chartHeight, this.margin.left, this.margin.top + ((0.70 * chartHeight) + this.margin.top));
+        this.charts[1].onBrush.call(this.charts[1], this.chartContext.brush);
         this.charts[1].updateCursor();
     }
 
@@ -52,7 +51,7 @@ function ChartCollection(data, volume_data) {
     }
 
     this.charts = [];
-    this.chartContext;
+    //this.chartContext;
 
     var chartCount = 2 + 1; // Charts + Context
 
@@ -82,7 +81,8 @@ function ChartCollection(data, volume_data) {
             " C: " + d.y[3];
     };
 
-    this.charts.push(new CandlestickChart({
+    this.charts.push(new CanvasCandlestickChart({
+    //this.charts.push(new CandlestickChart({
         svg: this.svg,
         data: data,
         width: this.width,
@@ -97,6 +97,8 @@ function ChartCollection(data, volume_data) {
         cursorTextFunc: cursorText,
         onMouseMove: this.onMouseMove.bind(this)
     }));
+
+    this.charts["CandleStickChart"] = this.charts[0];
 
     //this.charts.push(new Chart({
     //    svg: this.svg,
@@ -116,8 +118,8 @@ function ChartCollection(data, volume_data) {
 
 
     cursorText = function (d) { return "Volume: " + (d3.format(",")(d.y0)); };
-
-    this.charts.push(new BarChart({
+    this.charts.push(new CanvasBarChart({
+    //this.charts.push(new BarChart({
         svg: this.svg,
         data: volume_data,
         width: this.width,
@@ -130,8 +132,12 @@ function ChartCollection(data, volume_data) {
         dataMapFuncX: function (d) { return d.index; },
         dataMapFuncY: function (d) { return d.y0; },
         cursorTextFunc: cursorText,
-        onMouseMove: this.onMouseMove.bind(this),
+        onMouseMove: this.onMouseMove.bind(this)
     }));
+    this.charts["BarChart"] = this.charts[1];
+    //this.charts["BarChart"].chartContainer
+    //    .select("path.chart")
+    //    .attr("id", "volume_path");
 
     this.chartContext = new ChartContext({
         svg: this.svg,
@@ -169,13 +175,13 @@ function ChartContext(contextModel) {
             .scale(this.contextXScale)
             .orient("bottom");
 
-        var xS = this.contextXScale;
-        var yS = this.contextYScale;
+        //var xS = this.contextXScale;
+        //var yS = this.contextYScale;
         this.contextPathFunction
             .x(function (d) { return xS(d.x); })
-            .y(function (d) { return yS(d.y0); });
-            //.y0(this.contextHeight)
-            //.y1(function (d) { return yS(d.y0); });
+            //.y(function (d) { return yS(d.y0); });
+            .y0(this.contextHeight)
+            .y1(function (d) { return yS(d.y0); });
 
         this.context
             .attr("transform", "translate(" + translateX + "," + translateY + ")");
@@ -229,13 +235,13 @@ function ChartContext(contextModel) {
 
     var xS = this.contextXScale;
     var yS = this.contextYScale;
-    this.contextPathFunction = d3.svg.line()
+    this.contextPathFunction = d3.svg.area()
         //.interpolate("base")
         .defined(function (d) { return d.y0 != null && !isNaN(d.y0); })
         .x(function (d) { return xS(d.x); })
-        .y(function (d) { return yS(d.y0); });
-        //.y0(0)
-        //.y1(function (d) { return yS(d.y0); });
+        //.y(function (d) { return yS(d.y0); });
+        .y0(this.contextHeight)
+        .y1(function (d) { return yS(d.y0); });
 
 
     this.brush = d3.svg.brush()
@@ -250,6 +256,7 @@ function ChartContext(contextModel) {
 
     // Data for the context
     this.context.append("path")
+        .attr("id", "context_path")
         .datum(this.chartData)
         .attr("d", this.contextPathFunction);
 
@@ -271,6 +278,8 @@ function Chart(chartModel) {
     this.margin = chartModel.margin;
     this.width = chartModel.width;
     this.height = chartModel.height;
+    this.translateX = chartModel.translateX;
+    this.translateY = chartModel.translateY;
     this.chartData = chartModel.data;
     this.dataMapFuncX = chartModel.dataMapFuncX;
     this.dataMapFuncY = chartModel.dataMapFuncY;
@@ -288,6 +297,8 @@ function Chart(chartModel) {
     // Chart annotations
     this.patternAnnotations = [];
 
+    // Indicators
+    this.chartIndicators = [];
 
     // scales
     this.xScale = d3.scale.linear().range([0, this.width]);
@@ -314,13 +325,13 @@ function Chart(chartModel) {
     var yS = this.yScale;
 
     // SVG Path
-    this.pathFunction = d3.svg.area()
+    this.pathFunction = d3.svg.line()
         //.interpolate("monotone")
-        .defined(function(d) { return d.y0 != null && !isNaN(d.y0); })
+        .defined(function (d) { return d != null && d.y0 != null && !isNaN(d.y0); })
         .x(function (d) { return xS(d.index); })
-        //.y(function (d) { return yS(d.y0); });
-        .y0(function (d) { return yS(0); })
-        .y1(function (d) { return yS(d.y0); });
+        .y(function (d) { return yS(d.y0); });
+        //.y0(function (d) { return yS(0); })
+        //.y1(function (d) { return yS(d.y0); });
     
     // Clipping region    
     this.svg.append("defs")
@@ -336,13 +347,6 @@ function Chart(chartModel) {
         .attr("class", this.name)
         .attr("transform", "translate(" + chartModel.translateX + "," + chartModel.translateY + ")")
 
-    // Chart line path
-    this.chartContainer.append("path")
-        .attr("class", "chart")
-        .datum(this.chartData)
-        .attr("clip-path", "url(#clip-" + this.name + ")")
-        .attr("d", this.pathFunction);
-
     // Chart axes
     this.chartContainer.append("g")
         .attr("class", "x axis")
@@ -353,7 +357,6 @@ function Chart(chartModel) {
         //.attr("transform", "translate(" + (this.margin.left + this.width) + ",0)")
         .attr("transform", "translate(" + (this.width) + ",0)")
         .call(this.yAxis);
-
 
     // Catch mouse move events with this overlay   
     this.overlay = this.chartContainer.append("rect")
@@ -377,7 +380,24 @@ function Chart(chartModel) {
         .attr("y", 10)
         .attr("font-family", "sans-serif")
         .attr("font-size", "11px")
-        .attr("fill", "black");    
+        .attr("fill", "black");
+
+    Chart.prototype.addIndicator = function (indicator) {
+        this.chartIndicators[indicator.id] = indicator;
+
+        // Add the chart path
+        this.chartContainer.insert("path", "g.x.axis")
+            .attr("class", "chart_indicator")
+            .attr("id", indicator.id)
+            .attr("clip-path", "url(#clip-" + this.name + ")")
+            .datum(indicator.indicatorData)
+            .attr("d", indicator.pathFunction)
+            .attr("stroke", "blue")
+            .attr("fill", "none")
+            .attr("stroke-width", "0.05%");
+
+        this.chartIndicators.push(indicator);
+    }
 
     Chart.prototype.showPatternAnnotation = function (patternId) {
         var patternAnnotation = this.patternAnnotations.filter(function (element, index, array) {
@@ -514,6 +534,8 @@ function Chart(chartModel) {
     Chart.prototype.update = function (width, height, translateX, translateY) {
         this.width = width;
         this.height = height;
+        this.translateX = translateX;
+        this.translateY = translateY;
 
         var clipRectHeight = this.height - this.margin.top - this.margin.bottom;
 
@@ -544,7 +566,7 @@ function Chart(chartModel) {
         this.chartContainer.attr("transform", "translate(" + translateX + "," + translateY + ")")
 
         // Chart line path
-        this.chartContainer.select("path").datum(this.chartData).attr("d", this.pathFunction);
+        //this.chartContainer.select("path").datum(this.chartData).attr("d", this.pathFunction);
 
         // Chart axes
         this.chartContainer.select(".x.axis")
@@ -599,6 +621,16 @@ function CandlestickChart(chartModel) {
     this.barMargin = chartModel.barMargin;
     this.hasChartPath = true;
 
+    // Chart line path
+    this.chartContainer.append("path")
+        .attr("class", "chart")
+        .datum(this.chartData)
+        .attr("clip-path", "url(#clip-" + this.name + ")")
+        .attr("d", this.pathFunction)
+        .attr("stroke", "black")
+        .attr("fill", "none")
+        .attr("stroke-width", "0.05%");
+
     // Update the chart
     //CandlestickChart.prototype.update = function (width, height, translateX, translateY) {
     //    Chart.prototype.update.call(this, width, height, translateX, translateY);
@@ -616,13 +648,16 @@ function CandlestickChart(chartModel) {
         if (!brush || brush.empty()) {
             filtered_data = this.chartData;
             xDomain = d3.extent(this.chartData.map(this.dataMapFuncX));
+            //xDomain = brush.extent();
             yDomain = d3.extent(this.chartData.map(this.dataMapFuncY));
         }
         else {
             var brush_extent = brush.extent();
+
             filtered_data = this.chartData.filter(function (element, index, array) {
                 return (brush_extent[0] <= array[index].x && array[index].x <= brush_extent[1]);
             });
+
             xDomain = [d3.min(filtered_data, this.dataMapFuncX),
                 d3.max(filtered_data, this.dataMapFuncX)];
             var high_prices = filtered_data.map(function (d) { return d.y[1] });
@@ -630,15 +665,16 @@ function CandlestickChart(chartModel) {
             yDomain = [d3.min(low_prices), d3.max(high_prices)];
         }
 
+        //xDomain[0] = xDomain[0] - 1;
         this.xScale.domain(xDomain);
         this.yScale.domain(yDomain);
 
-
+        var prevHasChartPath = this.hasChartPath;
         var bar_width = 0.40 * (this.width - 2 * this.barMargin.side) / filtered_data.length;
         if (filtered_data.length > 0 && bar_width > this.barMargin.side) {
             // Remove the line chart
             //this.chartContainer.select("path").datum(new Array()).attr("d", this.area);
-            if (this.hasChartPath == true) {
+            if (prevHasChartPath == true) {
                 this.chartContainer.selectAll("path.chart").remove();
                 this.hasChartPath = false;
             }
@@ -647,39 +683,38 @@ function CandlestickChart(chartModel) {
             this.updateOHLC(filtered_data, bar_width);
         }
         else {
-            // Remove the OHLC candlesticks
-            this.chartContainer.selectAll("rect.candlebody").remove();
-            this.chartContainer.selectAll("line.stem").remove();
-            this.chartContainer.selectAll("line.close_stem").remove();
-            this.chartContainer.selectAll("line.open_stem").remove();
-
-            
-            if (this.hasChartPath == false)
-            {
+            if (prevHasChartPath == false) {
+                // Add the chart path
                 this.chartContainer.insert("path", "g.x.axis")
                     .attr("class", "chart")
-                    .datum(filtered_data)
+                    .datum(this.chartData)
                     .attr("clip-path", "url(#clip-" + this.name + ")")
                     .attr("d", this.pathFunction);
                 this.hasChartPath = true;
             }
             else {
-                this.chartContainer.select("path").datum(filtered_data).attr("d", this.pathFunction);
+                // Update the chart path
+                this.chartContainer.select("path.chart").datum(this.chartData).attr("d", this.pathFunction);
+                //this.chartContainer.selectAll("path").attr("d", this.pathFunction);
+            }
+
+            if (prevHasChartPath != this.hasChartPath) {
+                // Remove the OHLC candlesticks
+                this.chartContainer.selectAll("rect.candlebody").remove();
+                this.chartContainer.selectAll("line.stem").remove();
+                this.chartContainer.selectAll("line.close_stem").remove();
+                this.chartContainer.selectAll("line.open_stem").remove();
             }
         }
 
-        this.chartContainer.select(".x.axis").call(this.xAxis);
-        this.chartContainer.select(".y.axis").call(this.yAxis);
-
-        this.drawSegments();
+        //this.chartContainer.selectAll("path.chart_indicator").attr("d", this.pathFunction);
     }
 
     CandlestickChart.prototype.updateOHLC = function (filtered_data, bar_width) {
 
         var bar_color = function (d) {
             return d.y[0] == d.y[3] ?
-                "stroke:#000000;" :
-                (d.y[0] > d.y[3] ? "stroke:#FF0000;" : "stroke:#006600");
+                "stroke:#000000;" : (d.y[0] > d.y[3] ? "stroke:#FF0000;" : "stroke:#006600;");
         };
         var xS = this.xScale;
         var yS = this.yScale;
@@ -748,6 +783,16 @@ function BarChart(chartModel) {
     this.barMargin = chartModel.barMargin;
     this.hasChartPath = true;
 
+    // Chart line path
+    this.chartContainer.append("path")
+        .attr("class", "chart")
+        .datum(this.chartData)
+        .attr("clip-path", "url(#clip-" + this.name + ")")
+        .attr("d", this.pathFunction)
+        .attr("stroke", "black")
+        .attr("fill", "none")
+        .attr("stroke-width", "0.05%");
+
     // Update the chart
     //BarChart.prototype.update = function (width, height, translateX, translateY) {
     //    Chart.prototype.update.call(this, width, height, translateX, translateY);
@@ -772,6 +817,7 @@ function BarChart(chartModel) {
             filtered_data = this.chartData.filter(function (element, index, array) {
                 return (brush_extent[0] <= array[index].x && array[index].x <= brush_extent[1]);
             });
+
             xDomain = [d3.min(filtered_data, this.dataMapFuncX),
                         d3.max(filtered_data, this.dataMapFuncX)];
             yDomain = d3.extent(filtered_data.map(this.dataMapFuncY));
@@ -786,6 +832,7 @@ function BarChart(chartModel) {
             // Remove the line chart
             //this.chartContainer.select("path").data([new Array()]).attr("d", this.area);
             if (this.hasChartPath == true) {
+                this.id = this.chartContainer.select("path.chart").attr("id")
                 this.chartContainer.selectAll("path.chart").remove();
                 this.hasChartPath = false;
             }
@@ -801,13 +848,14 @@ function BarChart(chartModel) {
             if (this.hasChartPath == false) {
                 this.chartContainer.insert("path", "g.x.axis")
                     .attr("class", "chart")
-                    .datum(filtered_data)
+                    .datum(this.chartData)
                     .attr("clip-path", "url(#clip-" + this.name + ")")
-                    .attr("d", this.pathFunction);
+                    .attr("d", this.pathFunction)
+                    .attr("id", this.id);   // restore the main path id
                 this.hasChartPath = true;
             }
             else {
-                this.chartContainer.select("path").datum(filtered_data).attr("d", this.pathFunction);
+                this.chartContainer.select("path").attr("d", this.pathFunction);
             }
         }
 
@@ -824,30 +872,39 @@ function BarChart(chartModel) {
         var bars = this.chartContainer.selectAll("rect.bar").data(filtered_data);
         bars.attr("class", "bar")
             .attr("x", function (d, i) { return xS(d.index) - (bar_width / 2); })
-            .attr("y", function (d) { return !isNaN(yS(d.y0)) ? yS(d.y0) : 0; })
+            .attr("y", function (d) { return !isNaN(d.y0) ? yS(d.y0) : 0; })
             .attr("width", bar_width)
+            //.attr("height", function (d) {
+            //    //return !isNaN(d.y0) ? height - yS(d.y0) : -1;
+            //    if (!isNaN(d.y0) && d.y0 != null) {
+            //        return height - yS(d.y0);
+            //    }
+            //    else {
+            //        return 1;
+            //    }
+            //});
             .attr("height", function (d) {
-                //return !isNaN(d.y0) ? height - yS(d.y0) : -1;
-                if (!isNaN(d.y0) && d.y0 != null) {
-                    return height - yS(d.y0);
-                }
-                else {
-                    return 1;
-                }
+                var y = yS(0);
+                return y;
             });
         bars.enter().append("svg:rect")
             .attr("class", "bar")
             .attr("x", function (d, i) { return xS(d.index) - (bar_width / 2); })
-            .attr("y", function (d) { return !isNaN(yS(d.y0)) ? yS(d.y0) : 0; })
+            .attr("y", function (d) { return !isNaN(d.y0) ? yS(d.y0) : 0; })
             .attr("width", bar_width)
+            //.attr("height", function (d) {
+            //    //return !isNaN(d.y0) ? height - yS(d.y0) : -1;
+            //    if (!isNaN(d.y0) && d.y0 != null) {
+            //        var ys = yS(d.y0);
+            //        return height - ys;
+            //    }
+            //    else {
+            //        return 1;
+            //    }
+            //})
             .attr("height", function (d) {
-                //return !isNaN(d.y0) ? height - yS(d.y0) : -1;
-                if (!isNaN(d.y0) && d.y0 != null) {
-                    return height - yS(d.y0);
-                }
-                else {
-                    return 1;
-                }
+                var y = yS(0);
+                return y;
             })
             .attr("clip-path", "url(#clip-" + this.name + ")");
         bars.exit().remove();
@@ -856,3 +913,206 @@ function BarChart(chartModel) {
 // Inherit from Chart type
 BarChart.prototype = Object.create(Chart.prototype);
 BarChart.constructor = BarChart;
+
+
+
+function CanvasCandlestickChart(chartModel) {
+    // Call super class constructor
+    Chart.call(this, chartModel);
+
+    this.barMargin = chartModel.barMargin;
+    this.hasChartPath = true;
+
+    var clipRectHeight = this.height - this.margin.top - this.margin.bottom;
+
+    // HTML5 Canvas
+    d3.select("#chart").append("canvas")
+        .attr("id", "canvas-" + this.name)
+        .attr("style", "position: absolute; left: " + this.translateX + "px; top: " + this.translateY + "px; z-index: -100;")
+        //.attr("style", "position: absolute; top: 0; left: 0; border: 1px solid red; z-index: -100;")
+        .attr("width", this.width)
+        .attr("height", clipRectHeight);
+
+    CanvasCandlestickChart.prototype.dataDomainFuncY = function (data) {
+        var max = data[0].y0;
+        var min = data[0].y0;
+        for (var i = 0; i < data.length; i++) {
+            max = d3.max(max, d3.max(data[i].y));
+            min = d3.min(max, d3.min(data[i].y));
+        }
+        return [min, max];
+    }
+
+    // Update the chart
+    CanvasCandlestickChart.prototype.update = function (width, height, translateX, translateY) {
+        Chart.prototype.update.call(this, width, height, translateX, translateY);
+
+        var canvas = document.getElementById("canvas-" + this.name);
+        canvas.setAttribute("style", "position: absolute; left: " + this.translateX + "px; top: " + (this.translateY) + "px; z-index: -100;")
+    }
+
+    // Zoom or pan the context
+    CanvasCandlestickChart.prototype.onBrush = function (brush) {
+        var filtered_data;
+        var xDomain;
+        var yDomain;
+
+        if (brush.empty()) {
+            filtered_data = this.chartData;
+            //xDomain = d3.extent(this.chartData.map(this.dataMapFuncX));
+            //yDomain = d3.extent(this.chartData.map(this.dataMapFuncY));
+        }
+        else {
+            var brush_extent = brush.extent();
+
+            filtered_data = this.chartData.filter(function (element, index, array) {
+                return (brush_extent[0] <= array[index].x && array[index].x <= brush_extent[1]);
+            });
+        }
+
+        xDomain = [d3.min(filtered_data, this.dataMapFuncX),
+            d3.max(filtered_data, this.dataMapFuncX)];
+        var high_prices = filtered_data.map(function (d) { return d.y[1] });
+        var low_prices = filtered_data.map(function (d) { return d.y[2] });
+        yDomain = [d3.min(low_prices), d3.max(high_prices)];
+
+        xDomain[0] = xDomain[0] - 1;
+        xDomain[1] = xDomain[1] + 1;
+        this.xScale.domain(xDomain);
+        this.yScale.domain(yDomain);
+
+        //for (var i = 0; i < this.chartIndicators.length; i++) {
+        //    this.chartIndicators[i].onBrush(this.chartContainer, brush);
+        //}
+
+
+        var prevHasChartPath = this.hasChartPath;
+        var bar_width = 0.45 * (this.width - 2 * this.barMargin.side) / filtered_data.length;
+
+        this.chartContainer.select(".x.axis").call(this.xAxis);
+        this.chartContainer.select(".y.axis").call(this.yAxis);
+
+        this.drawSegments();
+        if (filtered_data.length > 0 && bar_width > this.barMargin.side) {
+            this.hasChartPath = false;
+        }
+        else {
+            this.hasChartPath = true;
+        }
+
+
+        var canvas = document.getElementById("canvas-" + this.name);
+        canvas.setAttribute("width", this.width);
+        canvas.setAttribute("height", (this.height - this.margin.top - this.margin.bottom));
+        canvas.setAttribute("style", "position: absolute; left: " + this.translateX + "px; top: " + this.translateY + "px; z-index: -100;")
+        if (canvas.getContext) {
+            var ctx = canvas.getContext('2d');
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (this.hasChartPath == true) {
+                drawLineChart(ctx, this, filtered_data);
+            }
+            else {
+                drawOhlcChart(ctx, this, filtered_data, bar_width);
+            }
+        } else {
+            // canvas-unsupported code here
+        }
+    }
+};
+// Inherit from Chart type
+CanvasCandlestickChart.prototype = Object.create(Chart.prototype);
+CanvasCandlestickChart.constructor = CanvasCandlestickChart;
+
+
+function CanvasBarChart(chartModel) {
+    // Call super class constructor
+    Chart.call(this, chartModel);
+
+    this.barMargin = chartModel.barMargin;
+    this.hasChartPath = true;
+
+    var clipRectHeight = this.height - this.margin.top - this.margin.bottom;
+
+    // HTML5 Canvas
+    d3.select("#chart").append("canvas")
+        .attr("id", "canvas-" + this.name)
+        .attr("style", "position: absolute; left: " + this.translateX + "px; top: " + this.translateY + "px; z-index: -100;")
+        //.attr("style", "position: absolute; top: 0; left: 0; border: 1px solid red; z-index: -100;")
+        .attr("width", this.width)
+        .attr("height", clipRectHeight);
+
+    // Update the chart
+    CanvasBarChart.prototype.update = function (width, height, translateX, translateY) {
+        Chart.prototype.update.call(this, width, height, translateX, translateY);
+
+        var canvas = document.getElementById("canvas-" + this.name);
+        canvas.setAttribute("style", "position: absolute; left: " + this.translateX + "px; top: " + (this.translateY) + "px; z-index: -100;")
+    }
+
+    // Zoom or pan the context
+    CanvasBarChart.prototype.onBrush = function (brush) {
+        var filtered_data;
+        var xDomain;
+        var yDomain;
+
+        if (brush.empty()) {
+            filtered_data = this.chartData;
+            xDomain = d3.extent(this.chartData.map(this.dataMapFuncX));
+            yDomain = d3.extent(this.chartData.map(this.dataMapFuncY));
+        }
+        else {
+            var brush_extent = brush.extent();
+            filtered_data = this.chartData.filter(function (element, index, array) {
+                return (brush_extent[0] <= array[index].x && array[index].x <= brush_extent[1]);
+            });
+
+            xDomain = [d3.min(filtered_data, this.dataMapFuncX),
+                        d3.max(filtered_data, this.dataMapFuncX)];
+            yDomain = d3.extent(filtered_data.map(this.dataMapFuncY));
+        }
+
+        this.xScale.domain(xDomain);
+        this.yScale.domain(yDomain);
+
+        //for (var i = 0; i < this.chartIndicators.length; i++) {
+        //    this.chartIndicators[i].onBrush(this.chartContainer, brush);
+        //}
+
+
+        var prevHasChartPath = this.hasChartPath;
+        var bar_width = 0.45 * (this.width - 2 * this.barMargin.side) / filtered_data.length;
+
+        this.chartContainer.select(".x.axis").call(this.xAxis);
+        this.chartContainer.select(".y.axis").call(this.yAxis);
+
+        this.drawSegments();
+        if (filtered_data.length > 0 && bar_width > this.barMargin.side) {
+            this.hasChartPath = false;
+        }
+        else {
+            this.hasChartPath = true;
+        }
+
+
+        var canvas = document.getElementById("canvas-" + this.name);
+        canvas.setAttribute("width", this.width);
+        canvas.setAttribute("height", (this.height - this.margin.top - this.margin.bottom));        
+        if (canvas.getContext) {
+            var ctx = canvas.getContext('2d');
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (this.hasChartPath == true) {
+                drawLineChart(ctx, this, filtered_data);
+            }
+            else {
+                drawBarChart(ctx, this, filtered_data, bar_width);
+            }
+        } else {
+            // canvas-unsupported code here
+        }
+    }
+};
+// Inherit from Chart type
+CanvasBarChart.prototype = Object.create(Chart.prototype);
+CanvasBarChart.constructor = CanvasBarChart;

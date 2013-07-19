@@ -6,10 +6,7 @@ var ContentType;
 var DataType;
 var ProcessData;
 
-function min(a, b) { return a < b ? a : b; }
-function max(a, b) { return a > b ? a : b; }
 var parseDate = d3.time.format("%Y%m%d").parse;
-
 
 function toIntDate(dt) {
     return (dt.getFullYear() * 10000) + ((dt.getMonth() + 1) * 100) + dt.getDate();
@@ -81,20 +78,20 @@ function ServiceSucceeded(result) {
         //});
 
         // Pad the end with empty data
-        var delta_date = parseDate(String(dates[dates.length - 1])) - parseDate(String(dates[dates.length - 2]));
-        var format = d3.time.format("%Y%m%d")
-        var new_date = parseDate((String(dates[dates.length - 1])));
-        new_date = new_date.getTime();
-        //var delta_dt = new Date(ms = delta_date)
-        new_date += delta_date;
-        new_date = new Date(new_date);
-        var new_date_string = format(new_date);
-        dates.push(new_date_string);
-        open.push(null);
-        high.push(null);
-        low.push(null);
-        close.push(null);
-        volume.push(null);
+        //var delta_date = parseDate(String(dates[dates.length - 1])) - parseDate(String(dates[dates.length - 2]));
+        //var format = d3.time.format("%Y%m%d")
+        //var new_date = parseDate((String(dates[dates.length - 1])));
+        //new_date = new_date.getTime();
+        ////var delta_dt = new Date(ms = delta_date)
+        //new_date += delta_date;
+        //new_date = new Date(new_date);
+        //var new_date_string = format(new_date);
+        //dates.push(new_date_string);
+        //open.push(null);
+        //high.push(null);
+        //low.push(null);
+        //close.push(null);
+        //volume.push(null);
 
         var data = dates.map(function (element, index) {            
             var dt = parseDate(String(element));
@@ -107,7 +104,7 @@ function ServiceSucceeded(result) {
                     close[index]],
                 y0: close[index],
             };
-        });
+        });        
 
         var volume_data = dates.map(function (element, index) {
             var dt = parseDate(String(element));
@@ -119,37 +116,142 @@ function ServiceSucceeded(result) {
             };
         });
 
+
+
         chartCollection = new ChartCollection(data, volume_data);
 
-        // Get pattern annotations from the dictionary
-        var jsonPatterns = patternJsonData[result.d["Symbol"]];
-        var patternAnnotations = []
+        if (typeof ta_asm != 'undefined') {
+            // Add moving average
+            var ma = new Array(close.length);
+            var ref_si = new JSIL.BoxedVariable();
+            var ref_num = new JSIL.BoxedVariable();
 
-        for (var i = 0; i < jsonPatterns.length; i++) {
-            var pattern = jsonPatterns[i];
-            var name = pattern["Name"];
+            var ma_period = 20;
+            var si, num;
+            //ta_asm.TicTacTec.TA.Library.Core.MovingAverage(
+            //    0, close.length - 1,
+            //    close,
+            //    ma_period,
+            //    ta_asm.TicTacTec.TA.Library.Core_MAType.Sma,
+            //    ref_si, ref_num, ma);
 
-            // Add pattern names to sidebar list
-            $("<li>")
-                .attr("class", "pattern_item")
-                .attr("onmouseover", "listItemMouseOver(this)")
-                .attr("onmouseout", "listItemMouseOut(this)")
-                .attr("onclick", "listItemClick(this)")
-                .attr("segment_id", i)
-                .append(name)
-                .appendTo("#pattern_list");
+            //var skip_num = ref_si.get() + 1;
+            //var result_data = (Array.apply(null, new Array(skip_num)).map(Number.prototype.valueOf, NaN)).concat(ma);
+            ////result_data = result_data.splice(close.length, skip_num);
 
-            // Create new pattern annotation objects
-            var patternAnnotation = new PatternAnnotation();
-            patternAnnotation.patternId = i;
-            for (var j = 0; j < pattern["PointCount"] - 1; j++) {
-                var patternSegment = new PatternSegment(pattern["PointDates"][j], pattern["PointDates"][j + 1]);
-                patternAnnotation.patternSegments.push(patternSegment);
-            }
-            patternAnnotations.push(patternAnnotation);
+            //var ma_data = result_data.map(function (element, index) {
+            //    return {
+            //        index: index,
+            //        x: dates[index],
+            //        y: [element],
+            //        y0: element
+            //    };
+            //});
+
+
+            var lowerBand = new Array(close.length);
+            var midBand = new Array(close.length);
+            var upperBand = new Array(close.length);
+            ta_asm.TicTacTec.TA.Library.Core.Bbands(
+                0, close.length - 1,
+                close,
+                ma_period,
+                2.0, 2.0,
+                ta_asm.TicTacTec.TA.Library.Core_MAType.Sma,
+                ref_si, ref_num,
+                lowerBand, midBand, upperBand);
+
+            var skip_num = ref_si.get() + 1;
+            var lowerBand = (Array.apply(null, new Array(skip_num)).map(Number.prototype.valueOf, NaN)).concat(lowerBand);
+            var midBand = (Array.apply(null, new Array(skip_num)).map(Number.prototype.valueOf, NaN)).concat(midBand);
+            var upperBand = (Array.apply(null, new Array(skip_num)).map(Number.prototype.valueOf, NaN)).concat(upperBand);
+
+            var chartAreaName = "CandleStickChart";
+            var chart = chartCollection.charts[chartAreaName];
+            var chartIndicatorName = "Bband_Lower";
+            mappedData = lowerBand.map(function (element, index) {
+                return {
+                    index: index,
+                    x: parseDate(String(dates[index])),
+                    y: [element],
+                    y0: element
+                };
+            });
+            var indicator = new LineChartSeries({
+                data: mappedData,
+                id: chartIndicatorName,
+                pathFunction: chart.pathFunction,
+            });
+            chart.addIndicator(indicator);
+            mappedData = midBand.map(function (element, index) {
+                return {
+                    index: index,
+                    x: parseDate(String(dates[index])),
+                    y: [element],
+                    y0: element
+                };
+            });
+            chartIndicatorName = "Bband_Mid";
+            indicator = new LineChartSeries({
+                data: mappedData,
+                id: chartIndicatorName,
+                pathFunction: chart.pathFunction,
+            });
+            chart.addIndicator(indicator);
+            chartIndicatorName = "Bband_Upper";
+            mappedData = upperBand.map(function (element, index) {
+                return {
+                    index: index,
+                    x: parseDate(String(dates[index])),
+                    y: [element],
+                    y0: element
+                };
+            });
+            indicator = new LineChartSeries({
+                data: mappedData,
+                id: chartIndicatorName,
+                pathFunction: chart.pathFunction,
+            });
+            chart.addIndicator(indicator);
         }
 
-        chartCollection.charts[0].patternAnnotations = patternAnnotations;
+
+
+        // Get pattern annotations from the dictionary
+        
+        if (typeof patternJsonData != 'undefined' && patternJsonData != null) {
+
+            var jsonPatterns = patternJsonData[result.d["Symbol"]];
+            var patternAnnotations = [];
+            //patternAnnotations = parsePatternJson(jsonPatterns)
+
+
+            for (var i = 0; i < jsonPatterns.length; i++) {
+                var pattern = jsonPatterns[i];
+                var name = pattern["Name"];
+
+                // Add pattern names to sidebar list
+                $("<li>")
+                    .attr("class", "pattern_item")
+                    .attr("onmouseover", "listItemMouseOver(this)")
+                    .attr("onmouseout", "listItemMouseOut(this)")
+                    .attr("onclick", "listItemClick(this)")
+                    .attr("segment_id", i)
+                    .append(name)
+                    .appendTo("#pattern_list");
+
+                // Create new pattern annotation objects
+                var patternAnnotation = new PatternAnnotation();
+                patternAnnotation.patternId = i;
+                for (var j = 0; j < pattern["PointCount"] - 1; j++) {
+                    var patternSegment = new PatternSegment(pattern["PointDates"][j], pattern["PointDates"][j + 1]);
+                    patternAnnotation.patternSegments.push(patternSegment);
+                }
+                patternAnnotations.push(patternAnnotation);
+            }
+
+            chartCollection.charts[0].patternAnnotations = patternAnnotations;
+        }
     }
 }
 
