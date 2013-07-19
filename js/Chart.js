@@ -17,15 +17,16 @@ window.onresize = function (event) {
 
 function ChartCollection(data, volume_data) {
 
-    this.resizeTimerAvg = 250;
-    var resizeTimer;
+    this.brushTimerAvg = 250;
+    
     ChartCollection.prototype.onBrush = function () {
         var charts = this.charts;
         var brush = this.chartContext.brush;
         var chartContext = this.chartContext;
 
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(function () {
+        var brushTimer;
+        clearTimeout(brushTimer);
+        brushTimer = setTimeout(function () {
             var startTime = Date.now();
 
             // Compute the context xDomain
@@ -65,9 +66,9 @@ function ChartCollection(data, volume_data) {
                 charts[i].onBrush.call(charts[i], brush, xDomain, xRange);
             }
 
-            this.resizeTimerAvg = ((0.30 * this.resizeTimerAvg) + (0.70 * (Date.now() - startTime))) / 1.9;
-            //console.log(resizeTimerAvg);
-        }, this.resizeTimerAvg);
+            this.brushTimerAvg = ((0.30 * this.brushTimerAvg) + (0.70 * (Date.now() - startTime))) / 1.9;
+            //console.log(brushTimerAvg);
+        }, this.brushTimerAvg);
     }
 
     ChartCollection.prototype.onBrushEnd = function () {
@@ -77,7 +78,7 @@ function ChartCollection(data, volume_data) {
             this.charts[i].onBrush.call(this.charts[i], this.chartContext.brush);
         }
 
-        this.resizeTimerAvg = ((0.10 * this.resizeTimerAvg) + (0.90 * (Date.now() - startTime))) / 1.9;
+        this.brushTimerAvg = ((0.10 * this.brushTimerAvg) + (0.90 * (Date.now() - startTime))) / 1.9;
     }
 
     ChartCollection.prototype.update = function (width, height) {
@@ -110,15 +111,20 @@ function ChartCollection(data, volume_data) {
         this.charts[1].onBrush.call(this.charts[1], this.chartContext.brush);
         this.charts[1].updateCursor();
     }
-
+    
     ChartCollection.prototype.onMouseMove = function () {
         //console.log("ChartCollection onMouseMove");
         //d3.event.preventDefault();
         d3.event.stopPropagation();
 
-        // Manually call the mouse move function for every other chart
-        for (i = 0; i < this.charts.length; i++) {
-            this.charts[i].onMouseMove.call(this.charts[i]);
+        var now = Date.now();
+        if (now - this.mouseMoveTimer > this.mouseMoveTime) {
+            //// Manually call the mouse move function for every other chart
+            for (i = 0; i < this.charts.length; i++) {
+                this.charts[i].onMouseMove.call(this.charts[i]);
+            }
+            
+            this.mouseMoveTimer = now;
         }
     }
 
@@ -127,9 +133,14 @@ function ChartCollection(data, volume_data) {
         d3.event.preventDefault();
         d3.event.stopPropagation();
 
-        // Manually call the mouse move function for every other chart
-        for (i = 0; i < this.charts.length; i++) {
-            this.charts[i].onTouchMove.call(this.charts[i]);
+        var now = Date.now();
+        if (now - this.mouseMoveTimer > this.mouseMoveTime) {
+            //// Manually call the mouse move function for every other chart
+            for (i = 0; i < this.charts.length; i++) {
+                this.charts[i].onMouseMove.call(this.charts[i]);
+            }
+
+            this.mouseMoveTimer = now;
         }
     }
 
@@ -138,9 +149,14 @@ function ChartCollection(data, volume_data) {
         d3.event.preventDefault();
         d3.event.stopPropagation();
 
-        // Manually call the mouse move function for every other chart
-        for (i = 0; i < this.charts.length; i++) {
-            this.charts[i].onTouchMove.call(this.charts[i]);
+        var now = Date.now();
+        if (now - this.mouseMoveTimer > this.mouseMoveTime) {
+            //// Manually call the mouse move function for every other chart
+            for (i = 0; i < this.charts.length; i++) {
+                this.charts[i].onMouseMove.call(this.charts[i]);
+            }
+
+            this.mouseMoveTimer = now;
         }
     }
 
@@ -158,6 +174,8 @@ function ChartCollection(data, volume_data) {
     // Chart annotations
     this.patternAnnotations = [];
 
+    this.mouseMoveTime = 50; // milliseconds
+    this.mouseMoveTimer = Date.now();
 
     this.svg = d3.select("#chart")
         .append("svg")
