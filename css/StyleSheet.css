@@ -69,9 +69,19 @@ svg {
 }
 
 .brush .extent {
-    stroke: #fff;
+    stroke: #000;
+    stroke-width: 1.0px;
+    stroke-opacity: 0.8;
     fill-opacity: .125;
     shape-rendering: crispEdges;
+}
+
+rect.contextResizeHandle {
+  fill: #666;
+  fill-opacity: .5;
+  stroke: #000;
+  stroke-width: 1.0px;
+  stroke-opacity: 0.8;
 }
 
 .mouse_overlay {
@@ -92,10 +102,3 @@ line.cursor_line {
     border: 1px solid black; 
 }*/
 
-rect.contextResizeHandle {
-  fill: #666;
-  fill-opacity: .5;
-  stroke: #000;
-  stroke-width: 1.0px;
-  stroke-opacity: 0.8;
-}

@@ -52,6 +52,7 @@ function ServiceSucceeded(result) {
     if (DataType == "json") {
 
         $(".chart").remove();
+        $("#chart").children("canvas").remove();
         $(".pattern_item").remove();
         $(".pattern_item_selected").remove();
 
@@ -119,6 +120,10 @@ function ServiceSucceeded(result) {
 
 
         chartCollection = new ChartCollection(data, volume_data);
+
+        var width = window.innerWidth;
+        var height = window.innerHeight;
+        chartCollection.update.call(chartCollection, width, height);
 
         if (typeof ta_asm != 'undefined') {
             // Add moving average
@@ -281,6 +286,7 @@ function GetYahooData(symbol) {
     var temp = get_prices(symbol, function (array) {
 
         $(".chart").remove();
+        $("#chart").children("canvas").remove();
         $(".pattern_item").remove();
         $(".pattern_item_selected").remove();
 

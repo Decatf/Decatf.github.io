@@ -82,20 +82,31 @@ function ChartCollection(data, volume_data) {
 
     ChartCollection.prototype.update = function (width, height) {
         var chartCount = this.charts.length + 1;
-        var chartWidth = (width * 7 / 10) - this.margin.left - this.margin.right;
-        var chartHeight = (height * 8 / 10) - (chartCount * this.margin.top) - this.margin.bottom;
-        //var chartHeight = (height * 2 / 3) - this.margin.top - this.margin.bottom;
+        var chartCollectionWidth = (width * 7 / 10) - this.margin.left - this.margin.right;
+        var chartCollectionHeight = (height * 8 / 10) - (chartCount * this.margin.top) - this.margin.bottom;
+        //var chartCollectionHeight = (height * 2 / 3) - this.margin.top - this.margin.bottom;
 
+        this.svg.attr("width", chartCollectionWidth + this.margin.left + this.margin.right)
+                .attr("height", chartCollectionHeight + (chartCount * this.margin.top) + this.margin.bottom);
 
-        this.chartContext.update(chartWidth, 0.10 * chartHeight, this.margin.left, this.margin.top + ((0.90 * chartHeight) + this.margin.top));
+        var chartWidth;
+        chartWidth = chartCollectionWidth - (0.10 * chartCollectionHeight);
+        chartHeight = 0.10 * chartCollectionHeight;
+        this.chartContext.update(
+            chartWidth,
+            chartHeight,
+            this.margin.left + (chartHeight) / 2,
+            this.margin.top + ((0.90 * chartCollectionHeight) + this.margin.top));
 
-        this.svg.attr("width", chartWidth + this.margin.left + this.margin.right)
-                .attr("height", chartHeight + (chartCount * this.margin.top) + this.margin.bottom);
-
-        this.charts[0].update.call(this.charts[0], chartWidth, 0.70 * chartHeight, this.margin.left, this.margin.top);
+        chartWidth = chartCollectionWidth;
+        chartHeight = 0.70 * chartCollectionHeight;
+        this.charts[0].update.call(this.charts[0], chartWidth, chartHeight, this.margin.left, this.margin.top);
         this.charts[0].onBrush.call(this.charts[0], this.chartContext.brush);
         this.charts[0].updateCursor();
-        this.charts[1].update.call(this.charts[1], chartWidth, 0.20 * chartHeight, this.margin.left, this.margin.top + ((0.70 * chartHeight) + this.margin.top));
+
+        chartWidth = chartCollectionWidth;
+        chartHeight = 0.20 * chartCollectionHeight;
+        this.charts[1].update.call(this.charts[1], chartWidth, chartHeight, this.margin.left, this.margin.top + ((0.70 * chartCollectionHeight) + this.margin.top));
         this.charts[1].onBrush.call(this.charts[1], this.chartContext.brush);
         this.charts[1].updateCursor();
     }
@@ -180,10 +191,16 @@ function ChartCollection(data, volume_data) {
         cursorTextFunc: cursorText,
         onMouseMove: this.onMouseMove.bind(this),
         onTouchStart: this.onTouchStart.bind(this),
-        onTouchMove: this.onTouchMove.bind(this)
+        onTouchMove: this.onTouchMove.bind(this),
+        yDomainPadding: 0.05
     }));
 
     this.charts["CandleStickChart"] = this.charts[0];
+    //this.charts["CandleStickChart"].yAxis.tickFormat(function (d, i) {
+    //    if (data[d]) {
+    //        return data[d].y0.toFixed(2);
+    //    }
+    //});
 
     //this.charts.push(new Chart({
     //    svg: this.svg,
@@ -219,20 +236,24 @@ function ChartCollection(data, volume_data) {
         cursorTextFunc: cursorText,
         onMouseMove: this.onMouseMove.bind(this),
         onTouchStart: this.onTouchStart.bind(this),
-        onTouchMove: this.onTouchMove.bind(this)
+        onTouchMove: this.onTouchMove.bind(this),
+        yDomainMin: 0
     }));
     this.charts["BarChart"] = this.charts[1];
     //this.charts["BarChart"].chartContainer
     //    .select("path.chart")
     //    .attr("id", "volume_path");
+    this.charts["BarChart"].yAxis.ticks(5);
 
+    var chartHeight =  (this.height * 0.10 - 2);
+    var chartWidth = this.width - (chartHeight); 
     this.chartContext = new ChartContext({
         svg: this.svg,
         data: data,
-        width: this.width,
-        height: (this.height * 0.10 - 2),
+        width: chartWidth,
+        height: chartHeight,
         margin: this.margin,
-        translateX: this.margin.left,
+        translateX: this.margin.left + chartHeight,
         translateY: this.margin.top + ((0.90 * this.height) + this.margin.top)
     });
     
@@ -395,6 +416,14 @@ function Chart(chartModel) {
     this.dataMapFuncX = chartModel.dataMapFuncX;
     this.dataMapFuncY = chartModel.dataMapFuncY;
     this.cursorText = chartModel.cursorTextFunc;
+
+    // Set custom domain range. (values in data space.)
+    this.yDomainMin = typeof chartModel.yDomainMin == 'undefined' ? null : chartModel.yDomainMin;
+    this.yDomainMax = typeof chartModel.yDomainMax == 'undefined' ? null : chartModel.yDomainMax;
+
+    // y domain padding (percentage)
+    this.yDomainPadding = typeof chartModel.yDomainPadding == 'undefined' ? 0 : chartModel.yDomainPadding;
+
 
     this.name = chartModel.name;
     //this.area = "";
@@ -1126,6 +1155,20 @@ function CanvasCandlestickChart(chartModel) {
 
         xDomain[0] = xDomain[0] - 1;
         xDomain[1] = xDomain[1] + 1;
+        // Custom domain range
+        if (this.yDomainMin != null) {
+            yDomain[0] = this.yDomainMin;
+        }
+        if (this.yDomainMax != null) {
+            yDomain[1] = this.yDomainMax;
+        }
+
+        if (this.yDomainPadding > 0) {
+            var yDomainDelta = (yDomain[1] - yDomain[0]) * this.yDomainPadding;
+            yDomain[0] = yDomain[0] - yDomainDelta;
+            yDomain[1] = yDomain[1] + yDomainDelta;
+        }
+
         this.xScale.domain(xDomain);
         this.yScale.domain(yDomain);
 
@@ -1135,7 +1178,7 @@ function CanvasCandlestickChart(chartModel) {
 
 
         var prevHasChartPath = this.hasChartPath;
-        var bar_width = 0.45 * (this.width - 2 * this.barMargin.side) / filtered_data.length;
+        var bar_width = 0.40 * (this.width - 2 * this.barMargin.side) / filtered_data.length;
 
         this.chartContainer.select(".x.axis").call(this.xAxis);
         this.chartContainer.select(".y.axis").call(this.yAxis);
@@ -1231,6 +1274,13 @@ function CanvasBarChart(chartModel) {
 
         xDomain[0] = xDomain[0] - 1;
         xDomain[1] = xDomain[1] + 1;
+        if (this.yDomainMin != null) {
+            yDomain[0] = this.yDomainMin;
+        }
+        if (this.yDomainMax != null) {
+            yDomain[1] = this.yDomainMax;
+        }
+
         this.xScale.domain(xDomain);
         this.yScale.domain(yDomain);
 
@@ -1262,7 +1312,7 @@ function CanvasBarChart(chartModel) {
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             if (this.hasChartPath == true) {
-                drawLineChart(ctx, this, filtered_data);
+                drawLineChart(ctx, this, filtered_data, this.yDomainMin);
             }
             else {
                 drawBarChart(ctx, this, filtered_data, bar_width);
