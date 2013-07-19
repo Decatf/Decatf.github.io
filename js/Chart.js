@@ -15,9 +15,19 @@ window.onresize = function (event) {
     }
 };
 
-function ChartCollection(data, volume_data) {   
+function ChartCollection(data, volume_data) {
 
+    var resizeTimer;
     ChartCollection.prototype.onBrush = function () {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function () {
+            var width = window.innerWidth;
+            var height = window.innerHeight;
+            chartCollection.update(width, height);
+        }, 50);
+    }
+
+    ChartCollection.prototype.onBrushEnd = function () {
         for (var i = 0; i < this.charts.length; i++) {
             this.charts[i].onBrush.call(this.charts[i], this.chartContext.brush);
         }
@@ -25,8 +35,8 @@ function ChartCollection(data, volume_data) {
 
     ChartCollection.prototype.update = function (width, height) {
         var chartCount = this.charts.length + 1;
-        var chartWidth = (width * 2 / 3) - this.margin.left - this.margin.right;
-        var chartHeight = (height * 4 / 5) - (chartCount * this.margin.top) - this.margin.bottom;
+        var chartWidth = (width * 8 / 10) - this.margin.left - this.margin.right;
+        var chartHeight = (height * 9 / 10) - (chartCount * this.margin.top) - this.margin.bottom;
         //var chartHeight = (height * 2 / 3) - this.margin.top - this.margin.bottom;
 
 
@@ -151,7 +161,8 @@ function ChartCollection(data, volume_data) {
     
     //this.chartContext.brush.on("brush", this.charts[0].onBrush.bind(this.charts[0]));
     //this.chartContext.brush.on("brush", this.charts[1].onBrush.bind(this.charts[1]));
-    this.chartContext.brush.on("brushend", this.onBrush.bind(this));
+    this.chartContext.brush.on("brushend", this.onBrushEnd.bind(this));
+    this.chartContext.brush.on("brush", this.onBrush.bind(this));
 };
 
 // Create the context brush that will let us zoom and pan the chart
