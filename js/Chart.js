@@ -65,7 +65,7 @@ function ChartCollection(data, volume_data) {
                 charts[i].onBrush.call(charts[i], brush, xDomain, xRange);
             }
 
-            this.resizeTimerAvg = ((0.30 * this.resizeTimerAvg) + (0.70 * (Date.now() - startTime))) / 2
+            this.resizeTimerAvg = ((0.30 * this.resizeTimerAvg) + (0.70 * (Date.now() - startTime))) / 1.9;
             //console.log(resizeTimerAvg);
         }, this.resizeTimerAvg);
     }
@@ -77,7 +77,7 @@ function ChartCollection(data, volume_data) {
             this.charts[i].onBrush.call(this.charts[i], this.chartContext.brush);
         }
 
-        this.resizeTimerAvg = ((0.10 * this.resizeTimerAvg) + (0.90 * (Date.now() - startTime))) / 2
+        this.resizeTimerAvg = ((0.10 * this.resizeTimerAvg) + (0.90 * (Date.now() - startTime))) / 1.9;
     }
 
     ChartCollection.prototype.update = function (width, height) {
@@ -101,9 +101,35 @@ function ChartCollection(data, volume_data) {
     }
 
     ChartCollection.prototype.onMouseMove = function () {
+        //console.log("ChartCollection onMouseMove");
+        //d3.event.preventDefault();
+        d3.event.stopPropagation();
+
         // Manually call the mouse move function for every other chart
         for (i = 0; i < this.charts.length; i++) {
             this.charts[i].onMouseMove.call(this.charts[i]);
+        }
+    }
+
+    ChartCollection.prototype.onTouchStart = function (evt) {
+        //console.log("ChartCollection onTouchStart");
+        d3.event.preventDefault();
+        d3.event.stopPropagation();
+
+        // Manually call the mouse move function for every other chart
+        for (i = 0; i < this.charts.length; i++) {
+            this.charts[i].onTouchMove.call(this.charts[i]);
+        }
+    }
+
+    ChartCollection.prototype.onTouchMove = function (evt) {
+        //console.log("ChartCollection onTouchMove");
+        d3.event.preventDefault();
+        d3.event.stopPropagation();
+
+        // Manually call the mouse move function for every other chart
+        for (i = 0; i < this.charts.length; i++) {
+            this.charts[i].onTouchMove.call(this.charts[i]);
         }
     }
 
@@ -152,7 +178,9 @@ function ChartCollection(data, volume_data) {
         dataMapFuncX: function (d) { return d.index; },
         dataMapFuncY: function (d) { return d.y0; },
         cursorTextFunc: cursorText,
-        onMouseMove: this.onMouseMove.bind(this)
+        onMouseMove: this.onMouseMove.bind(this),
+        onTouchStart: this.onTouchStart.bind(this),
+        onTouchMove: this.onTouchMove.bind(this)
     }));
 
     this.charts["CandleStickChart"] = this.charts[0];
@@ -189,7 +217,9 @@ function ChartCollection(data, volume_data) {
         dataMapFuncX: function (d) { return d.index; },
         dataMapFuncY: function (d) { return d.y0; },
         cursorTextFunc: cursorText,
-        onMouseMove: this.onMouseMove.bind(this)
+        onMouseMove: this.onMouseMove.bind(this),
+        onTouchStart: this.onTouchStart.bind(this),
+        onTouchMove: this.onTouchMove.bind(this)
     }));
     this.charts["BarChart"] = this.charts[1];
     //this.charts["BarChart"].chartContainer
@@ -210,6 +240,7 @@ function ChartCollection(data, volume_data) {
     //this.chartContext.brush.on("brush", this.charts[1].onBrush.bind(this.charts[1]));
     this.chartContext.brush.on("brushend", this.onBrushEnd.bind(this));
     this.chartContext.brush.on("brush", this.onBrush.bind(this));
+
 };
 
 // Create the context brush that will let us zoom and pan the chart
@@ -329,6 +360,28 @@ function ChartContext(contextModel) {
         .selectAll("rect")
         .attr("y", 0)
         .attr("height", this.contextHeight);
+
+    // Brush handles
+    //var arc = d3.svg.arc()
+    //.outerRadius(this.contextHeight / 2)
+    //.startAngle(0)
+    //.endAngle(function (d, i) { return i ? -Math.PI : Math.PI; });
+
+    //this.context.selectAll(".resize").append("path")
+    //.attr("transform", "translate(0," +  this.contextHeight / 2 + ")")
+    //.attr("d", arc);
+
+    this.context.selectAll(".resize.e").append("rect")
+        .attr("class", "contextResizeHandle")
+        .attr("width", this.contextHeight / 3)
+        .attr("height", this.contextHeight)
+        .attr("transform", "translate(0, 0)");
+
+    this.context.selectAll(".resize.w").append("rect")
+        .attr("class", "contextResizeHandle")
+        .attr("width", this.contextHeight / 3)
+        .attr("height", this.contextHeight)
+        .attr("transform", "translate(" + (-this.contextHeight / 3) + ", 0)");
 };
 
 function Chart(chartModel) {
@@ -423,7 +476,10 @@ function Chart(chartModel) {
         .attr("height", clipRectHeight)
         //.on("mouseover", function () { focus.style("display", null); })
         //.on("mouseout", function () { focus.style("display", "none"); })
-        .on("mousemove", chartModel.onMouseMove);
+        .on("mousemove", chartModel.onMouseMove)
+        .on("touchmove", chartModel.onTouchMove)
+        .on("touchstart", chartModel.onTouchStart);
+
 
     this.chartContainer.append("svg:line")
         .attr("class", "cursor_line")
@@ -553,27 +609,55 @@ function Chart(chartModel) {
         segmentLine.exit().remove();
     }
 
-    Chart.prototype.onMouseMove = function (rect) {
+    Chart.prototype.onMouseMove = function () {
         var bisectData = d3.bisector(function (d) { return d.index; }).left
         var xS = this.xScale;
         var data = this.chartData;
         var focus = this.chartContainer;
         var cursorTextFunc = this.cursorText;
 
-        //var x0 = xS.invert(d3.mouse(rect)[0]),
-        var x0 = xS.invert(d3.mouse(this.overlay[0][0])[0]),
-                    i = bisectData(data, x0, 1),
-                    d0 = data[i - 1],
-                    d1 = data[i],
-                    d = x0 - d0.index > d1.index - x0 ? d1 : d0;
-        //console.log(d.date)
-        focus.select("text.cursor_value")
-            .text(cursorTextFunc(d));
+        var x0 = xS.invert(d3.mouse(this.overlay[0][0])[0]);
+        //console.log(d3m[0] + " : " + x0);
+        var i = bisectData(data, x0, 1);
+        if (i > -1 && i < data.length) {
+            var d0 = data[i - 1];
+            var d1 = data[i];
+            var d = x0 - d0.index > d1.index - x0 ? d1 : d0;
+            //console.log(d.date)
+            focus.select("text.cursor_value")
+                .text(cursorTextFunc(d));
 
-        focus.select("line.cursor_line")
-            .style("stroke-opacity", .125)
-            .attr("x1", xS(d.index))
-            .attr("x2", xS(d.index));
+            focus.select("line.cursor_line")
+                .style("stroke-opacity", .125)
+                .attr("x1", xS(d.index))
+                .attr("x2", xS(d.index));
+        }
+    }
+
+    Chart.prototype.onTouchMove = function () {
+        var bisectData = d3.bisector(function (d) { return d.index; }).left
+        var xS = this.xScale;
+        var data = this.chartData;
+        var focus = this.chartContainer;
+        var cursorTextFunc = this.cursorText;
+
+        var touches = d3.touches(this.overlay[0][0]);
+        var x0 = xS.invert(touches[0][0]);
+        //console.log(d3m[0] +  " : " + x0);
+        var i = bisectData(data, x0, 1);
+        if (i > -1 && i < data.length) {
+            var d0 = data[i - 1];
+            var d1 = data[i];
+            var d = x0 - d0.index > d1.index - x0 ? d1 : d0;
+            //console.log(d.date)
+            focus.select("text.cursor_value")
+                .text(cursorTextFunc(d));
+
+            focus.select("line.cursor_line")
+                .style("stroke-opacity", .125)
+                .attr("x1", xS(d.index))
+                .attr("x2", xS(d.index));
+        }
     }
 
     Chart.prototype.updateCursor = function () {
