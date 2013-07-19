@@ -285,23 +285,23 @@ function GetYahooData(symbol) {
         $(".pattern_item_selected").remove();
 
         // Pad the end with empty data
-        var len = array.length;
-        var parseDate = d3.time.format("%Y-%m-%d").parse;
-        var delta_date = parseDate(array[0]["date"]) - parseDate(array[1]["date"]);
-        var format = d3.time.format("%Y-%m-%d");
-        var new_date = parseDate(String(array[0]["date"]));
-        new_date = new_date.getTime();
-        new_date += delta_date;
-        new_date = new Date(new_date);
-        var new_date_string = format(new_date);
-        array.splice(0, 0, {
-            "adj close": null,
-            "close": null,
-            "date": new_date_string,
-            "high": null,
-            "low": null,
-            "volume": null,
-        });
+        //var len = array.length;
+        //var parseDate = d3.time.format("%Y-%m-%d").parse;
+        //var delta_date = parseDate(array[0]["date"]) - parseDate(array[1]["date"]);
+        //var format = d3.time.format("%Y-%m-%d");
+        //var new_date = parseDate(String(array[0]["date"]));
+        //new_date = new_date.getTime();
+        //new_date += delta_date;
+        //new_date = new Date(new_date);
+        //var new_date_string = format(new_date);
+        //array.splice(0, 0, {
+        //    "adj close": null,
+        //    "close": null,
+        //    "date": new_date_string,
+        //    "high": null,
+        //    "low": null,
+        //    "volume": null,
+        //});
         //dates.push(new_date_string);
         //open.push(null);
         //high.push(null);
