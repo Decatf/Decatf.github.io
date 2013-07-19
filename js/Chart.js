@@ -135,9 +135,9 @@ function ChartCollection(data, volume_data) {
 
         var now = Date.now();
         if (now - this.mouseMoveTimer > this.mouseMoveTime) {
-            //// Manually call the mouse move function for every other chart
+            // Manually call the mouse move function for every other chart
             for (i = 0; i < this.charts.length; i++) {
-                this.charts[i].onMouseMove.call(this.charts[i]);
+                this.charts[i].onTouchMove.call(this.charts[i]);
             }
 
             this.mouseMoveTimer = now;
@@ -151,9 +151,9 @@ function ChartCollection(data, volume_data) {
 
         var now = Date.now();
         if (now - this.mouseMoveTimer > this.mouseMoveTime) {
-            //// Manually call the mouse move function for every other chart
+            // Manually call the mouse move function for every other chart
             for (i = 0; i < this.charts.length; i++) {
-                this.charts[i].onMouseMove.call(this.charts[i]);
+                this.charts[i].onTouchMove.call(this.charts[i]);
             }
 
             this.mouseMoveTimer = now;
