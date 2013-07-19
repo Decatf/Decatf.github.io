@@ -151,7 +151,7 @@ function ChartCollection(data, volume_data) {
     
     //this.chartContext.brush.on("brush", this.charts[0].onBrush.bind(this.charts[0]));
     //this.chartContext.brush.on("brush", this.charts[1].onBrush.bind(this.charts[1]));
-    this.chartContext.brush.on("brush", this.onBrush.bind(this));
+    this.chartContext.brush.on("brushend", this.onBrush.bind(this));
 };
 
 // Create the context brush that will let us zoom and pan the chart
