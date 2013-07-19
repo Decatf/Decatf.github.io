@@ -8,7 +8,7 @@
     float: left;
 }
 
-#pattern_list, #breakout_date_list, #symbol_list {
+#pattern_list, #breakout_date_list, #symbol_list, .tick.major, .cursor_value {
     list-style-type: none;
     margin-left: 0;
     padding-left: 0;
@@ -29,8 +29,20 @@ td#breakout_day_cell {
     height: 500px;
 }
 
-path {
+path.chart {
 	stroke: steelblue;
+	stroke-width: 0.05%;
+	fill: none;
+}
+
+path#context_path {
+	stroke: steelblue;
+	stroke-width: 0.05%;
+	fill: steelblue;
+}
+
+path#volume_path{
+	stroke: black;
 	stroke-width: 0.05%;
 	fill: none;
 }
@@ -67,11 +79,23 @@ svg {
     pointer-events: all;
 }
 
-line.cursor {
+line.cursor_line {
     stroke: black;
     stroke-opacity: 0.125;
 }
 
-g.BarChart path.chart {
-	fill: rgba(127,201,127,0.5);
+/*g.BarChart path.chart {
+	fill: black;
+}*/
+
+/*canvas { 
+    border: 1px solid black; 
+}*/
+
+rect.contextResizeHandle {
+  fill: #666;
+  fill-opacity: .5;
+  stroke: #000;
+  stroke-width: 1.0px;
+  stroke-opacity: 0.8;
 }
