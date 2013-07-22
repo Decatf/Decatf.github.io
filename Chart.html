@@ -9,6 +9,7 @@
     <script src="http://d3js.org/d3.v3.min.js"></script>
     <script src="js/finance.js"></script>
     <script src="js/spin.js"></script>
+    <script src="js/cmin.js"></script>
     <script src="js/Indicator.js"></script>
     <script src="js/PatternAnnotation.js"></script>
     <script src="js/Chart.js"></script>
@@ -21,86 +22,6 @@
 
     <script  type="text/javascript">
 
-        var symbol = null;
-        //var wcf_error = false;
-
-        function onClickSymbolButton() {
-            new_symbol = document.getElementById("symbolTextbox").value;
-            var new_symbol = new_symbol.toUpperCase();
-
-            if (symbol == null || symbol != new_symbol) {
-                symbol = new_symbol;
-                CallService(symbol);
-            }
-        }
-
-
-        hasTabPage = false;
-        function handleFileSelect(evt) {
-            var files = evt.target.files; // FileList object
-
-            // files is a FileList of File objects. 
-            for (var i = 0, f; f = files[i]; i++) {
-                var reader = new FileReader();
-
-                // Closure to capture the file information.
-                reader.onload = (function (theFile) {
-                    return function (e) {
-
-                        patternBreakouts = [];
-                        patternBreakouts = readJsonFile(reader.result);
-
-                        // Dictionary - key: Date, value: List of symbols                        
-                        breakoutDayDict = getPatternBreakoutsByDate();
-
-                        //updateAnnotationLists();
-
-                        if (!hasTabPage) {
-                            createAnnotationTabPages();
-                        }
-                        else {
-                            updateAnnotationsTabs();
-                        }
-                    };
-                })(f);
-
-                // Read in the txt file
-                reader.readAsText(f);
-            }
-        }
-
-        var buffer = []
-        function onKeyPress() {
-            var x;
-            if (window.event) // IE8 and earlier
-            {
-                x = event.keyCode;
-            }
-            else if (event.which) // IE9/Firefox/Chrome/Opera/Safari
-            {
-                x = event.which;
-            }
-            keychar = String.fromCharCode(x);
-            buffer.push(keychar);
-            if (buffer.length > 4) {
-                buffer.splice(0, buffer.length - 4);
-            }
-
-            var str = buffer.join().replace(new RegExp(",", 'g'), "");
-            if (str == "poiu") {
-
-                if (document.getElementById('filesButton') == null) {
-                    var input = document.createElement("input");
-                    input.setAttribute("type", "file");
-                    input.setAttribute("id", "filesButton");
-                    input.setAttribute("name", "files[]");
-                    input.addEventListener('change', handleFileSelect, false);
-                    var symbolButton = document.getElementById("symbolButton");
-                    symbolButton.parentNode.insertBefore(input, symbolButton.nextSibling);
-                }
-                document.getElementById('filesButton').click();
-            }
-        }
     </script>
 </head>
 <body onkeypress="onKeyPress()"  class="nihilo">

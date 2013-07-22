@@ -325,6 +325,20 @@ function GetYahooData(symbol) {
     var get_prices = historical_prices();
     var temp = get_prices(symbol, function (array) {
 
+        if (array == null) {
+            $(".chart").remove();
+            $("#chart").children("canvas").remove();
+            $(".pattern_item").remove();
+            $(".pattern_item_selected").remove();
+
+            var p = document.getElementById("resultText");
+            p.innerHTML = symbol;
+
+            var loadingOverlay = document.getElementById("loadOverlay");
+            loadingOverlay.parentElement.removeChild(loadingOverlay);
+        }
+
+
         $(".chart").remove();
         $("#chart").children("canvas").remove();
         $(".pattern_item").remove();

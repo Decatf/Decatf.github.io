@@ -58,6 +58,10 @@ function historical_prices() {
     d3.json(url, function(error, data) {
       if (!data) return callback(data);
 
+      if (data.query.results == null) {
+          callback(null);
+          return null;
+      }
       var csv_text = data.query.results.body.p;
 
       var clean_csv_text = csv_text.slice(0, 42).trim().toLowerCase() + "\n"; // column names row
