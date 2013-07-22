@@ -60,7 +60,8 @@ function drawOhlcChart(ctx, chart, data, bar_width) {
 
         // high/low bar
         //var x = xS(chart.dataMapFuncX(data[i]));
-        var x = Math.floor(xS(chart.dataMapFuncX(data[i]))) + offset;
+        //var x = Math.floor(xS(chart.dataMapFuncX(data[i]))) + offset;
+        var x = ~~(xS(chart.dataMapFuncX(data[i]))) + offset;
         var y1 = yS(data[i].y[1]);  // high
         var y2 = yS(data[i].y[2]);  // low
         //var y1 = Math.floor(yS(data[i].y[1])) + 0.5;  // high
@@ -71,14 +72,16 @@ function drawOhlcChart(ctx, chart, data, bar_width) {
 
         // open tick
         //y1 = yS(data[i].y[0]);  // open
-        y1 = Math.floor(yS(data[i].y[0])) + offset;  // open
+        //y1 = Math.floor(yS(data[i].y[0])) + offset;  // open
+        y1 = ~~(yS(data[i].y[0])) + offset;  // open
         ctx.moveTo(x, y1);
         ctx.lineTo(x - bar_width, y1);
         ctx.stroke();
 
         // close tick
         //y1 = yS(data[i].y[3]);  // close
-        y1 = Math.floor(yS(data[i].y[3])) + offset;  // close
+        //y1 = Math.floor(yS(data[i].y[3])) + offset;  // close
+        y1 = ~~(yS(data[i].y[3])) + offset;  // close
         ctx.moveTo(x, y1);
         ctx.lineTo(x + bar_width, y1);
         ctx.stroke();

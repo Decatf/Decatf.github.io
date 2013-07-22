@@ -339,9 +339,7 @@ function ChartContext(contextModel) {
 
     // Brush event
     //ChartContext.prototype.onBrush = function () {        
-    //    for (var i = 0; i < charts.length; i++) {
-    //        charts[i].onBrush(chartContext.brush);
-    //    }
+        
     //}
 
 
@@ -379,7 +377,7 @@ function ChartContext(contextModel) {
 
     this.brush = d3.svg.brush()
         .x(this.contextXScale)
-        //.on("brush", this.onBrush);
+        .on("brush", onBrushEvents);
         //.on("brush", chartCollection.onBrush);
 
     this.context = this.svg.append("g")
@@ -437,11 +435,21 @@ function ChartContext(contextModel) {
         .on("mousemove", onBrushHandleTouch)
         .on("touchmove", onBrushHandleTouch)
         .on("touchstart", onBrushHandleTouch);
+
+    this.context.selectAll("g.x.brush")
+        .on("mousemove", onBrushEvents)
+        .on("touchmove", onBrushEvents)
+        .on("touchstart", onBrushEvents);
 };
 
 function onBrushHandleTouch() {
-    //d3.event.preventDefault();
-    d3.event.stopPropagation();
+    d3.event.preventDefault();
+    //d3.event.stopPropagation();
+};
+
+function onBrushEvents() {
+    d3.event.preventDefault();
+    //d3.event.stopPropagation();
 };
 
 function Chart(chartModel) {
