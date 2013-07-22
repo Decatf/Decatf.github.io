@@ -16,7 +16,7 @@ window.onresize = function (event) {
 };
 
 function ChartCollection(data, volume_data) {
-    
+
     ChartCollection.prototype.onBrush = function () {
         var charts = this.charts;
         var brush = this.chartContext.brush;
@@ -29,7 +29,6 @@ function ChartCollection(data, volume_data) {
             var xDomain;
             if (brush.empty()) {
                 filtered_data = chartContext.chartData;
-                xDomain = d3.extent(filtered_data.map(chartContext.dataMapFuncX));
             }
             else {
                 var brush_extent = brush.extent();
@@ -58,7 +57,7 @@ function ChartCollection(data, volume_data) {
             }
 
             for (var i = 0; i < charts.length; i++) {
-                charts[i].onBrush.call(charts[i], brush, xDomain, xRange);
+                charts[i].onBrush.call(charts[i], brush, xRange, xRange);
             }
 
             var now = Date.now();
@@ -117,7 +116,7 @@ function ChartCollection(data, volume_data) {
     
     ChartCollection.prototype.onMouseMove = function () {
         //console.log("ChartCollection onMouseMove");
-        //d3.event.preventDefault();
+        d3.event.preventDefault();
         d3.event.stopPropagation();
 
         var now = Date.now();
@@ -420,13 +419,29 @@ function ChartContext(contextModel) {
         .attr("class", "contextResizeHandle")
         .attr("width", this.contextHeight / 2)
         .attr("height", this.contextHeight)
-        .attr("transform", "translate(0, 0)");
+        .attr("transform", "translate(0, 0)")
+        .on("mousemove", onBrushHandleTouch)
+        .on("touchmove", onBrushHandleTouch)
+        .on("touchstart", onBrushHandleTouch);
 
     this.context.selectAll(".resize.w").append("rect")
         .attr("class", "contextResizeHandle")
         .attr("width", this.contextHeight / 2)
         .attr("height", this.contextHeight)
-        .attr("transform", "translate(" + (-this.contextHeight / 2) + ", 0)");
+        .attr("transform", "translate(" + (-this.contextHeight / 2) + ", 0)")
+        .on("mousemove", onBrushHandleTouch)
+        .on("touchmove", onBrushHandleTouch)
+        .on("touchstart", onBrushHandleTouch);
+
+    this.context.selectAll("rect.extent")
+        .on("mousemove", onBrushHandleTouch)
+        .on("touchmove", onBrushHandleTouch)
+        .on("touchstart", onBrushHandleTouch);
+};
+
+function onBrushHandleTouch() {
+    //d3.event.preventDefault();
+    d3.event.stopPropagation();
 };
 
 function Chart(chartModel) {
@@ -1168,9 +1183,9 @@ function CanvasCandlestickChart(chartModel) {
 
         //xDomain = [d3.min(filtered_data, this.dataMapFuncX),
         //    d3.max(filtered_data, this.dataMapFuncX)];
-        //if (typeof xDomain == 'undefined' || xDomain == null) {
+        if (typeof xDomain == 'undefined' || xDomain == null) {
             xDomain = d3.extent(filtered_data.map(this.dataMapFuncX));
-        //}
+        }
         //else {
         //    console.log("why");
         //}
@@ -1292,9 +1307,9 @@ function CanvasBarChart(chartModel) {
         }
 
         yDomain = d3.extent(filtered_data.map(this.dataMapFuncY));
-        //if (typeof xDomain == 'undefined' || xDomain == null) {
+        if (typeof xDomain == 'undefined' || xDomain == null) {
             xDomain = d3.extent(filtered_data.map(this.dataMapFuncX));
-        //}
+        }
 
         xDomain[0] = xDomain[0] - 1;
         xDomain[1] = xDomain[1] + 1;
