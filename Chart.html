@@ -1,35 +1,41 @@
 ﻿<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-    <title></title>
+    <title>Chart</title>
 	<link rel="stylesheet" type="text/css" href="css/StyleSheet.css"/>
+    <link rel="stylesheet" type="text/css" href="http://ajax.googleapis.com/ajax/libs/dojo/1.9.1/dijit/themes/nihilo/nihilo.css"/>
+
     <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
     <script src="http://d3js.org/d3.v3.min.js"></script>
     <script src="js/finance.js"></script>
+    <script src="js/spin.js"></script>
     <script src="js/Indicator.js"></script>
     <script src="js/PatternAnnotation.js"></script>
     <script src="js/Chart.js"></script>
     <script src="js/DataService.js"></script>
     <script src="js/CanvasChart.js"></script>
-    
-    
+
+    <script>dojoConfig = { async: true, parseOnLoad: true }</script>
+    <script src="http://ajax.googleapis.com/ajax/libs/dojo/1.9.1/dojo/dojo.js"></script>
+
+
     <script  type="text/javascript">
+
         var symbol = null;
         //var wcf_error = false;
 
-        function symbolButton() {
-            new_symbol = document.getElementById("symbol_textbox").value;
+        function onClickSymbolButton() {
+            new_symbol = document.getElementById("symbolTextbox").value;
             var new_symbol = new_symbol.toUpperCase();
 
             if (symbol == null || symbol != new_symbol) {
                 symbol = new_symbol;
                 CallService(symbol);
             }
-            //if (wcf_error == true) {
-            //    GetYahooData(symbol);
-            //}
         }
 
+
+        hasTabPage = false;
         function handleFileSelect(evt) {
             var files = evt.target.files; // FileList object
 
@@ -40,7 +46,21 @@
                 // Closure to capture the file information.
                 reader.onload = (function (theFile) {
                     return function (e) {
-                        updateAnnotationLists(reader);
+
+                        patternBreakouts = [];
+                        patternBreakouts = readJsonFile(reader.result);
+
+                        // Dictionary - key: Date, value: List of symbols                        
+                        breakoutDayDict = getPatternBreakoutsByDate();
+
+                        //updateAnnotationLists();
+
+                        if (!hasTabPage) {
+                            createAnnotationTabPages();
+                        }
+                        else {
+                            updateAnnotationsTabs();
+                        }
                     };
                 })(f);
 
@@ -68,31 +88,37 @@
 
             var str = buffer.join().replace(new RegExp(",", 'g'), "");
             if (str == "poiu") {
-                document.getElementById('files').click();
+
+                if (document.getElementById('filesButton') == null) {
+                    var input = document.createElement("input");
+                    input.setAttribute("type", "file");
+                    input.setAttribute("id", "filesButton");
+                    input.setAttribute("name", "files[]");
+                    input.addEventListener('change', handleFileSelect, false);
+                    var symbolButton = document.getElementById("symbolButton");
+                    symbolButton.parentNode.insertBefore(input, symbolButton.nextSibling);
+                }
+                document.getElementById('filesButton').click();
             }
         }
-
     </script>
 </head>
-<body onkeypress="onKeyPress()">
-    Symbol: <input id="symbol_textbox" type="text" name="symbol"/>
-    <input type="submit" value="Submit" onclick="symbolButton()"/>
-    <input type="file" id="files" name="files[]" />
-    <script>
-        document.getElementById('files')
-            .addEventListener('change', handleFileSelect, false);
-    </script>
+<body onkeypress="onKeyPress()"  class="nihilo">
 
-    <p id="resultText"></p>
+    Symbol: <input id="symbolTextbox" type="text" name="symbol"/>
+    <input  id="symbolButton" type="submit" value="Submit" onclick="onClickSymbolButton()"/>
+
+    <div class="content" style="position: absolute; height: 100%;">
+        <div class="leftBlock" id="annotationsTabContentDiv" style="float:left; position: relative; top: 50%; /*margin-top: -135px;*/">
+            <div id="annotationsTabDiv" style="float:left;"></div>
+        </div>
     
-    <div id="symbols">
-        <table id="symbol_table">
-            <tr>
-                <td>
-                    <div id="chart" style="position: relative"></div>></div>
-                </td>
-            </tr>
-        </table>
-    </div>
+        <div class="centerBlock" id="chartContentDiv" style="float:left; position: relative; top: 50%; ">
+            <div class="topBlock" >
+                <p id="resultText"></p>
+            </div>
+            <div id="chart" style="position: relative;"></div>
+        </div>
+    </div>     
 </body>
 </html>

@@ -1,8 +1,5 @@
 ﻿
-
-
 window.onresize = function (event) {
-
     // look for resize but use timer to only call the update script when a resize stops
     var resizeTimer;
     window.onresize = function (event) {
@@ -10,14 +7,17 @@ window.onresize = function (event) {
         resizeTimer = setTimeout(function () {
             var width = window.innerWidth;
             var height = window.innerHeight;
-            chartCollection.update(width, height);
+            width = width - 250;
+            if (typeof chartCollection != 'undefined' && chartCollection != null) {
+                chartCollection.update(width, height);
+            }
         }, 100);
     }
 };
 
 function ChartCollection(data, volume_data) {
 
-    this.brushTimerAvg = 250;
+    this.brushTimerAvg = 200;
     
     ChartCollection.prototype.onBrush = function () {
         var charts = this.charts;
@@ -83,7 +83,7 @@ function ChartCollection(data, volume_data) {
 
     ChartCollection.prototype.update = function (width, height) {
         var chartCount = this.charts.length + 1;
-        var chartCollectionWidth = (width * 7 / 10) - this.margin.left - this.margin.right;
+        var chartCollectionWidth = (width * 9 / 10) - this.margin.left - this.margin.right;
         var chartCollectionHeight = (height * 8 / 10) - (chartCount * this.margin.top) - this.margin.bottom;
         //var chartCollectionHeight = (height * 2 / 3) - this.margin.top - this.margin.bottom;
 
@@ -110,6 +110,12 @@ function ChartCollection(data, volume_data) {
         this.charts[1].update.call(this.charts[1], chartWidth, chartHeight, this.margin.left, this.margin.top + ((0.70 * chartCollectionHeight) + this.margin.top));
         this.charts[1].onBrush.call(this.charts[1], this.chartContext.brush);
         this.charts[1].updateCursor();
+
+
+        // Center the tab container vertically
+        var chartContentDiv = document.getElementById("chartContentDiv");
+        var marginTop = "-" + ((height - (chartCount * this.margin.top) - this.margin.bottom) / 2) + "px";
+        chartContentDiv.style['marginTop'] = marginTop;
     }
     
     ChartCollection.prototype.onMouseMove = function () {
@@ -765,6 +771,8 @@ function Chart(chartModel) {
             //.attr("transform", "translate(" + (this.margin.left + this.width) + ", " + 0 + ")")
             .attr("transform", "translate(" + (this.width) + ", " + 0 + ")")
             .call(this.yAxis);
+
+
     }
 
     // Zoom or pan the context

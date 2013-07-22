@@ -16,6 +16,66 @@ var chartCollection;
 
 // Function to call WCF  Service       
 function CallService(symbol) {
+
+    var margin = margin = { top: 10, right: 80, bottom: 10, left: 10 };
+    var width = window.innerWidth;
+    var height = window.innerHeight;
+    width = width - 250;
+    var chartCollectionWidth = (width * 9 / 10);// - margin.left - margin.right;
+    var chartCollectionHeight = (height * 8 / 10);// - margin.top - margin.bottom;
+
+    // Center the chart container vertically
+    var chartContentDiv = document.getElementById("chartContentDiv");
+    var marginTop = "-" + ((height - (1 * margin.top) - margin.bottom) / 2) + "px";
+    chartContentDiv.style['marginTop'] = marginTop;
+
+    // Create the loading spinner overlay
+    var loadingOverlay = document.getElementById("loadOverlay");
+    if (loadingOverlay == null) {
+        loadingOverlay = document.createElement("div");
+        loadingOverlay.setAttribute("id", "loadOverlay");
+        //loadingOverlay.setAttribute("style", "background-color: white; border-style: solid; border-width: 2px;");
+        loadingOverlay.style.position = "absolute";
+        loadingOverlay.style.left = "0px";
+        loadingOverlay.style.top = "0px";
+        //loadingOverlay.style.left = margin.left + "px";
+        //loadingOverlay.style.top = margin.top + "px";
+        loadingOverlay.style.width = chartCollectionWidth + "px";
+        loadingOverlay.style.height = chartCollectionHeight + "px";
+        loadingOverlay.style.backgroundColor = "rgba(200, 200, 200, 0.8)";
+        loadingOverlay.style.borderStyle = "solid";
+        loadingOverlay.style.borderWidth = "1px";
+
+        //var cell = document.getElementById("chartCell");
+        //cell.appendChild(loadingOverlay);
+
+        var chartElement = document.getElementById("chart");
+        //chartElement.parentNode.insertBefore(loadingOverlay, chartElement.nextSibling);
+        chartElement.appendChild(loadingOverlay);
+    }
+
+    var opts = {
+        lines: 17, // The number of lines to draw
+        length: 2, // The length of each line
+        width: 10, // The line thickness
+        radius: 30, // The radius of the inner circle
+        corners: 1, // Corner roundness (0..1)
+        rotate: 0, // The rotation offset
+        direction: 1, // 1: clockwise, -1: counterclockwise
+        color: '#000', // #rgb or #rrggbb
+        speed: 2, // Rounds per second
+        trail: 60, // Afterglow percentage
+        shadow: false, // Whether to render a shadow
+        hwaccel: true, // Whether to use hardware acceleration
+        className: 'spinner', // The CSS class to assign to the spinner
+        zIndex: 2e9, // The z-index (defaults to 2000000000)
+        top: 'auto', // Top position relative to parent in px
+        left: 'auto' // Left position relative to parent in px
+    };
+    var target = document.getElementById('loadOverlay');
+    var spinner = new Spinner(opts).spin(target);
+
+
     Type = "POST";
     Url = "http://localhost:8080/Service.svc/GetSymbol";
     Data = '{"symbol": "' + symbol + '"}';
@@ -26,11 +86,6 @@ function CallService(symbol) {
     $.ajaxSetup({
         error: function (x, e) {
             ServiceFailed(x, e);
-
-            // Fallback data source
-            if (wcf_error == true) {
-                GetYahooData(symbol);
-            }
         }
     });
 
@@ -38,18 +93,30 @@ function CallService(symbol) {
         type: Type, //GET or POST or PUT or DELETE verb
         url: Url, // Location of the service
         data: Data, //Data sent to server
-        contentType: ContentType, // content type sent to server
+        contentType: ContentType, // content type sent to server    
         dataType: DataType, //Expected data format from server
         processdata: ProcessData, //True or False
         success: function (msg) {//On Successfull service call
-            ServiceSucceeded(msg);
-        }
-        //error: ServiceFailed// When Service call fails
+            var chartCreated = ServiceSucceeded(msg);            
+
+            if (chartCreated) {
+                var width = window.innerWidth;
+                var height = window.innerHeight;
+                width = width - 250;
+                chartCollection.update.call(chartCollection, width, height);
+            }
+
+            loadingOverlay.parentElement.removeChild(loadingOverlay);
+        },
+        error: ServiceFailed// When Service call fails
     });
 }
 
 function ServiceSucceeded(result) {
-    if (DataType == "json") {
+    if (DataType == "json" && result.d != null) {
+
+        var symbol = result.d["Symbol"];
+        var exchange = result.d["Exchange"];
 
         $(".chart").remove();
         $("#chart").children("canvas").remove();
@@ -57,7 +124,7 @@ function ServiceSucceeded(result) {
         $(".pattern_item_selected").remove();
 
         var p = document.getElementById("resultText");
-        p.innerHTML = result.d["Exchange"] + " : " + result.d["Symbol"];
+        p.innerHTML = exchange + " : " + symbol;
 
         var close = result.d["Close"];
         var high = result.d["High"];
@@ -120,10 +187,6 @@ function ServiceSucceeded(result) {
 
 
         chartCollection = new ChartCollection(data, volume_data);
-
-        var width = window.innerWidth;
-        var height = window.innerHeight;
-        chartCollection.update.call(chartCollection, width, height);
 
         if (typeof ta_asm != 'undefined') {
             // Add moving average
@@ -222,42 +285,15 @@ function ServiceSucceeded(result) {
 
 
 
-        // Get pattern annotations from the dictionary
-        
+        // Get pattern annotations from the dictionary      
         if (typeof patternJsonData != 'undefined' && patternJsonData != null) {
-
-            var jsonPatterns = patternJsonData[result.d["Symbol"]];
-            var patternAnnotations = [];
-            //patternAnnotations = parsePatternJson(jsonPatterns)
-
-
-            for (var i = 0; i < jsonPatterns.length; i++) {
-                var pattern = jsonPatterns[i];
-                var name = pattern["Name"];
-
-                // Add pattern names to sidebar list
-                $("<li>")
-                    .attr("class", "pattern_item")
-                    .attr("onmouseover", "listItemMouseOver(this)")
-                    .attr("onmouseout", "listItemMouseOut(this)")
-                    .attr("onclick", "listItemClick(this)")
-                    .attr("segment_id", i)
-                    .append(name)
-                    .appendTo("#pattern_list");
-
-                // Create new pattern annotation objects
-                var patternAnnotation = new PatternAnnotation();
-                patternAnnotation.patternId = i;
-                for (var j = 0; j < pattern["PointCount"] - 1; j++) {
-                    var patternSegment = new PatternSegment(pattern["PointDates"][j], pattern["PointDates"][j + 1]);
-                    patternAnnotation.patternSegments.push(patternSegment);
-                }
-                patternAnnotations.push(patternAnnotation);
-            }
-
+            var patternAnnotations = updateSymbolAnnotationsList(symbol);
             chartCollection.charts[0].patternAnnotations = patternAnnotations;
         }
+
+        return true;
     }
+    return false;
 }
 
 function ServiceFailed(x, e) {
@@ -276,6 +312,10 @@ function ServiceFailed(x, e) {
     }
 
     wcf_error = true;
+    // Fallback data source
+    if (wcf_error == true) {
+        GetYahooData(symbol);
+    }
 
     return;
 }
@@ -289,6 +329,9 @@ function GetYahooData(symbol) {
         $("#chart").children("canvas").remove();
         $(".pattern_item").remove();
         $(".pattern_item_selected").remove();
+
+        var p = document.getElementById("resultText");
+        p.innerHTML = symbol;
 
         // Pad the end with empty data
         //var len = array.length;
@@ -351,34 +394,20 @@ function GetYahooData(symbol) {
 
         chartCollection = new ChartCollection(data, volume_data);
 
-        // Get pattern annotations from the dictionary
-        var jsonPatterns = patternJsonData[symbol];
-        var patternAnnotations = []
-
-        for (var i = 0; i < jsonPatterns.length; i++) {
-            var pattern = jsonPatterns[i];
-            var name = pattern["Name"];
-
-            // Add pattern names to sidebar list
-            $("<li>")
-                .attr("class", "pattern_item")
-                .attr("onmouseover", "listItemMouseOver(this)")
-                .attr("onmouseout", "listItemMouseOut(this)")
-                .attr("onclick", "listItemClick(this)")
-                .attr("segment_id", i)
-                .append(name)
-                .appendTo("#pattern_list");
-
-            // Create new pattern annotation objects
-            var patternAnnotation = new PatternAnnotation();
-            patternAnnotation.patternId = i;
-            for (var j = 0; j < pattern["PointCount"] - 1; j++) {
-                var patternSegment = new PatternSegment(pattern["PointDates"][j], pattern["PointDates"][j + 1]);
-                patternAnnotation.patternSegments.push(patternSegment);
-            }
-            patternAnnotations.push(patternAnnotation);
+        // Get pattern annotations from the dictionary      
+        if (typeof patternJsonData != 'undefined' && patternJsonData != null) {
+            var patternAnnotations = updateSymbolAnnotationsList(symbol);
+            chartCollection.charts[0].patternAnnotations = patternAnnotations;
         }
 
-        chartCollection.charts[0].patternAnnotations = patternAnnotations;
+        if (typeof chartCollection != 'undefined' && chartCollection != null) {
+            var width = window.innerWidth;
+            var height = window.innerHeight;
+            width = width - 250;
+            chartCollection.update.call(chartCollection, width, height);
+        }
+
+        var loadingOverlay = document.getElementById("loadOverlay");
+        loadingOverlay.parentElement.removeChild(loadingOverlay);
     });
 }

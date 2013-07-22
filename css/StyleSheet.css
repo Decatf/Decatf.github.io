@@ -1,4 +1,9 @@
-﻿#chart {    
+﻿body {
+    /* Hide the scrollbars */
+    overflow:hidden;
+}
+
+#chart {    
     /*text-align: center;*/
 }
 
@@ -8,7 +13,7 @@
     float: left;
 }
 
-#pattern_list, #breakout_date_list, #symbol_list, .tick.major, .cursor_value {
+#pattern_list, #breakout_date_list, #symbol_list, .tick.major, .cursor_value, #tabpane_breakoutday_list, #tabpane_symbol_list, #tabpane_annotation_list {
     list-style-type: none;
     margin-left: 0;
     padding-left: 0;
@@ -19,6 +24,10 @@
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+}
+
+#tabpane_breakoutday_list, #tabpane_symbol_list, #tabpane_annotation_list {
+    margin-top: 0;
 }
 
 .pattern_item_selected {

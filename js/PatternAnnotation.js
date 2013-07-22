@@ -3,37 +3,6 @@ var patternBreakouts = [];
 // Array of dates with symbols that have breakouts
 var breakoutDayDict;
 
-function readJsonFile(data) {
-    //console.log(this.result);
-
-    var obj = JSON.parse(data);
-
-    // dictionary of symbols containing the breakouts for each symbol
-    patternJsonData = obj[1];
-
-    // Breakouts list
-    var breakoutsList = obj[0];
-    breakoutsList.sort(function (a, b) {
-        return parseInt(b[1]) - parseInt(a[1]);
-    });
-
-    for (var i = 1; i < breakoutsList.length; i++) {
-        var entries = breakoutsList[i];
-        var pb = new PatternBreakouts(entries[0], entries[1]);
-        patternBreakouts.push(pb);
-    }
-}
-
-// Parse the breakouts list.
-// Format: "symbol   date"
-function parsePatternBreakouts(data) {
-    var rows = data.split("\r\n");
-    for (var i = 1; i < rows.length; i++) {
-        var entries = rows[i].split("\t");
-        var pb = new PatternBreakouts(entries[0], entries[1]);
-        patternBreakouts.push(pb);
-    }
-}
 
 var PatternBreakouts = (function () {
     // constructor
@@ -61,7 +30,40 @@ var PatternBreakouts = (function () {
     return PatternBreakouts;
 })();
 
-// Get an array of dates with symbol breakouts for each date
+/* 
+    Parse the main pattern json file
+    args: json text data
+    global:
+        patternJsonData: Data of each breakout
+        breakoutsList: List of breakout day and symbol
+        patternBreakouts: 
+*/
+function readJsonFile(data) {
+    //console.log(this.result);
+    var obj = JSON.parse(data);
+
+    // dictionary of symbols containing the breakouts for each symbol
+    patternJsonData = obj[1];
+
+    // Breakouts list
+    var breakoutsList = obj[0];
+    breakoutsList.sort(function (a, b) {
+        return parseInt(b[1]) - parseInt(a[1]);
+    });
+
+    var patternBreakouts = [];
+    for (var i = 0; i < breakoutsList.length; i++) {
+        var breakout = breakoutsList[i];
+        var pb = new PatternBreakouts(breakout[0], breakout[1]);    // symbol, date
+        patternBreakouts.push(pb);
+    }
+
+    return patternBreakouts;
+}
+
+/* 
+    Organize the patterns by breakout day.
+*/
 function getPatternBreakoutsByDate() {    
     var dict = [];
     var dates = [];
@@ -83,25 +85,33 @@ function getPatternBreakoutsByDate() {
     return { "dates": dates, "dict": dict }
 }
 
-function parsePatternJson(data) {
-    var obj = JSON.parse(data);
+
+
+function PatternSegment(startDate, endDate) {
+    this.startDate = startDate;
+    this.endDate = endDate;
+}
+
+function PatternAnnotation() {
+    this.patternId = -1;
+    this.patternName = "";
+    this.patternSegments = [];
+}
+
+/*
+    Parse the patterns for a particular symbol.
+    returns: Array of PatternAnnotation objects.
+*/
+function parsePatternJson(jsonPatterns) {
     var patternAnnotations = []
 
-    for (var i = 0; i < obj.length; i++) {
-        var pattern = obj[i];
+    for (var i = 0; i < jsonPatterns.length; i++) {
+        var pattern = jsonPatterns[i];
         var name = pattern["Name"];
 
-        // Add pattern names to sidebar list
-        $("<li>")
-            .attr("class", "pattern_item")
-            .attr("onmouseover", "listItemMouseOver(this)")
-            .attr("onmouseout", "listItemMouseOut(this)")
-            .attr("onclick", "listItemClick(this)")
-            .attr("segment_id", i)
-            .append(name)
-            .appendTo("#pattern_list");
-
+        // Create new pattern annotation objects
         var patternAnnotation = new PatternAnnotation();
+        patternAnnotation.patternName = name;
         patternAnnotation.patternId = i;
         for (var j = 0; j < pattern["PointCount"] - 1; j++) {
             var patternSegment = new PatternSegment(pattern["PointDates"][j], pattern["PointDates"][j + 1]);
@@ -113,21 +123,104 @@ function parsePatternJson(data) {
     return patternAnnotations;
 }
 
-function PatternSegment(startDate, endDate) {
-    this.startDate = startDate;
-    this.endDate = endDate;
+/*
+    Create the dijit TabContainer holding the lists of pattern breakouts.
+*/
+function createAnnotationTabPages() {
+
+    // Create a new cell for the tab page
+    //var table_row = document
+    //    .getElementById("symbol_table")
+    //    .getElementsByTagName("tbody")[0]
+    //    .getElementsByTagName("tr")[0];
+
+    //var cell = document.createElement("td");
+    //cell.setAttribute("id", "tabpage_cell");
+    //table_row.insertBefore(cell, table_row.children[0]);
+
+    // Create div elements for the tab page
+    //var annotationsDiv = document.createElement("div");
+    //annotationsDiv.setAttribute("id", "annotationsTabDiv");
+    var annotationsDiv = document.getElementById("annotationsTabDiv");
+   
+    //cell.appendChild(annotationsDiv);
+
+
+    require(["dijit/layout/TabContainer", "dijit/layout/ContentPane", "dojo/domReady!"], function (TabContainer, ContentPane) {
+
+        var tabContainerHeight = 270;
+
+        var tc = new TabContainer({
+            id: "annotationsTabContainer",
+            style: "height: " + tabContainerHeight + "px; width: 290px;"
+        }, "annotationsTabDiv");
+
+        var breakoutDayList = document.createElement("ul");
+        breakoutDayList.setAttribute("id", "tabpane_breakoutday_list");
+        var cp1 = new ContentPane({
+            id: "breakoutDayTabContentPane",
+            title: "Breakout Day",
+            content: breakoutDayList,
+            startup: updateAnnotationsTabs,
+            //style: "height: 100%; width: 100%;"
+        });
+        tc.addChild(cp1);
+
+        var symbolList = document.createElement("ul");
+        symbolList.setAttribute("id", "tabpane_symbol_list");
+        var cp2 = new ContentPane({
+            id: "symbolsTabContentPane",
+            title: "Symbols",
+            content: symbolList
+        });
+        tc.addChild(cp2);
+
+        var annotationList = document.createElement("ul");
+        annotationList.setAttribute("id", "tabpane_annotation_list");
+        var cp3 = new ContentPane({
+            id: "annotationsTabContentPane",
+            title: "Annotations",
+            content: annotationList
+        });
+        tc.addChild(cp3);
+
+        tc.startup();
+
+        // Center the tab container vertically
+        var annotationsTabDiv = document.getElementById("annotationsTabContentDiv");
+        var marginTop = "-" + (tabContainerHeight / 2) + "px";
+        annotationsTabDiv.style['marginTop'] = marginTop;
+
+
+        hasTabPage = true;
+    });
 }
 
-function PatternAnnotation() {
-    this.patternId = -1;
-    this.patternSegments = [];
+/*
+    Populate the list in the breakout day tab pane.
+*/
+function updateAnnotationsTabs() {
+    require(["dojo"], function (dojo) {
+        //var myWidget = dojo.byId("breakoutDayTabContentPane");
+        //console.log("myWidget");
+
+        $("#tabpane_breakoutday_list .breakout_date_item").remove();
+
+        var dict = breakoutDayDict;
+        $(dict["dates"]).each(function (i) {
+            $("<li>")
+                .attr("class", "breakout_date_item")
+                .attr("onmouseover", "listItemMouseOver(this)")
+                .attr("onmouseout", "listItemMouseOut(this)")
+                .attr("onclick", "breakoutDayItemClick(this)")
+                .append(dict["dates"][i])
+                .appendTo("#tabpane_breakoutday_list");
+            //.appendTo(list);
+        });
+    });
 }
 
-function updateAnnotationLists(reader) {
-    patternBreakouts = [];
-    readJsonFile(reader.result);
-    // Dictionary - key: Date, value: List of symbols                        
-    breakoutDayDict = getPatternBreakoutsByDate();
+function updateAnnotationLists() {
 
     var list_cell = document.getElementById("breakout_day_cell");
 
@@ -186,12 +279,55 @@ function updateAnnotationLists(reader) {
     });
 }
 
+/*
+    Populate the list of breakouts for the symbol
+*/
+function updateSymbolAnnotationsList(symbol) {
+
+    if (typeof patternJsonData != 'undefined' && patternJsonData != null) {
+
+        var jsonPatterns = patternJsonData[symbol];
+        if (jsonPatterns != null) {
+            //var patternAnnotations = [];
+            var patternAnnotations = parsePatternJson(jsonPatterns)
+
+            // Populate the list of breakouts for the symbol
+            for (var i = 0; i < patternAnnotations.length; i++) {
+                var name = patternAnnotations[i].patternName;
+                var id = patternAnnotations[i].patternId;
+                // Add pattern names to sidebar list
+                $("<li>")
+                    .attr("class", "pattern_item")
+                    .attr("onmouseover", "listItemMouseOver(this)")
+                    .attr("onmouseout", "listItemMouseOut(this)")
+                    .attr("onclick", "annotationItemClick(this)")
+                    .attr("segment_id", id)
+                    .append(name)
+                    .appendTo("#pattern_list");
+
+                $("<li>")
+                    .attr("class", "pattern_item")
+                    .attr("onmouseover", "listItemMouseOver(this)")
+                    .attr("onmouseout", "listItemMouseOut(this)")
+                    .attr("onclick", "annotationItemClick(this)")
+                    .attr("segment_id", id)
+                    .append(name)
+                    .appendTo("#tabpane_annotation_list");
+            }
+        }
+        return patternAnnotations;
+    }
+    return null;
+}
+
+/* 
+    Populate the symbols list for a specific breakout day
+*/
 function breakoutDayItemClick(item) {
     var symbols = breakoutDayDict["dict"][item.textContent]
     //console.log(item.textContent);
 
     $("#symbol_list .symbol_item").remove();
-
     $(symbols).each(function (i) {
         $("<li>")
             .attr("class", "symbol_item")
@@ -201,15 +337,32 @@ function breakoutDayItemClick(item) {
             .append(symbols[i])
             .appendTo("#symbol_list");
     });
+
+
+    $("#tabpane_symbol_list  .symbol_item").remove();
+    $(symbols).each(function (i) {
+        $("<li>")
+            .attr("class", "symbol_item")
+            .attr("onmouseover", "listItemMouseOver(this)")
+            .attr("onmouseout", "listItemMouseOut(this)")
+            .attr("onclick", "symbolItemClick(this)")
+            .append(symbols[i])
+            .appendTo("#tabpane_symbol_list");
+    });
 }
 
-function listItemMouseOver(item) {
-    item.style.backgroundColor = "Blue";
+function symbolItemClick(item) {
+    var new_symbol = item.textContent
+    if (symbol == null || symbol != new_symbol) {
+        symbol = new_symbol;
+        // Create a chart for the new symbol
+        CallService(symbol);
+    }
 }
-function listItemMouseOut(item) {
+
+function annotationItemClick(item) {
     item.style.backgroundColor = "";
-}
-function listItemClick(item) {
+
     if (item.getAttribute("class") == "pattern_item") {
         item.setAttribute("class", "pattern_item_selected");
 
@@ -225,10 +378,10 @@ function listItemClick(item) {
     chartCollection.charts[0].drawSegments();
 }
 
-function symbolItemClick(item) {
-    var new_symbol = item.textContent
-    if (symbol == null || symbol != new_symbol) {
-        symbol = new_symbol;
-        CallService(symbol);
-    }
+function listItemMouseOver(item) {
+    item.style.backgroundColor = "Blue";
 }
+function listItemMouseOut(item) {
+    item.style.backgroundColor = "";
+}
+
