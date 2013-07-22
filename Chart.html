@@ -7,33 +7,18 @@
 
     <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
     <script src="http://d3js.org/d3.v3.min.js"></script>
-    <script src="js/finance.js"></script>
     <script src="js/spin.js"></script>
-    <script src="js/cmin.js"></script>
-    <script src="js/Indicator.js"></script>
-    <script src="js/PatternAnnotation.js"></script>
-    <script src="js/Chart.js"></script>
-    <script src="js/DataService.js"></script>
-    <script src="js/CanvasChart.js"></script>
-
+    <script src="js/c.min.js"></script>
     <script>dojoConfig = { async: true, parseOnLoad: true }</script>
     <script src="http://ajax.googleapis.com/ajax/libs/dojo/1.9.1/dojo/dojo.js"></script>
-
-
-    <script  type="text/javascript">
-
-    </script>
 </head>
-<body onkeypress="onKeyPress()"  class="nihilo">
-
+<body onkeypress="onKeyPress(event)"  class="nihilo">
     Symbol: <input id="symbolTextbox" type="text" name="symbol"/>
     <input  id="symbolButton" type="submit" value="Submit" onclick="onClickSymbolButton()"/>
-
     <div class="content" style="position: absolute; height: 100%;">
         <div class="leftBlock" id="annotationsTabContentDiv" style="float:left; position: relative; top: 50%; /*margin-top: -135px;*/">
             <div id="annotationsTabDiv" style="float:left;"></div>
         </div>
-    
         <div class="centerBlock" id="chartContentDiv" style="float:left; position: relative; top: 50%; ">
             <div class="topBlock" >
                 <p id="resultText"></p>

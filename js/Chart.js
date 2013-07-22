@@ -16,19 +16,14 @@ window.onresize = function (event) {
 };
 
 function ChartCollection(data, volume_data) {
-
-    this.brushTimerAvg = 200;
     
     ChartCollection.prototype.onBrush = function () {
         var charts = this.charts;
         var brush = this.chartContext.brush;
         var chartContext = this.chartContext;
 
-        var brushTimer;
-        clearTimeout(brushTimer);
-        brushTimer = setTimeout(function () {
-            var startTime = Date.now();
-
+        var startTime = Date.now();
+        if (startTime - this.onBrushTimer > this.brushTimerAvg) {
             // Compute the context xDomain
             var filtered_data;
             var xDomain;
@@ -66,19 +61,21 @@ function ChartCollection(data, volume_data) {
                 charts[i].onBrush.call(charts[i], brush, xDomain, xRange);
             }
 
-            this.brushTimerAvg = ((0.30 * this.brushTimerAvg) + (0.70 * (Date.now() - startTime))) / 1.9;
-            //console.log(brushTimerAvg);
-        }, this.brushTimerAvg);
+            var now = Date.now();
+            this.brushTimerAvg = ((0.40 * this.brushTimerAvg) + (0.60 * (now - startTime))) / 1.95;
+            //console.log(this.brushTimerAvg);
+            this.onBrushTimer = now;
+        }
     }
 
     ChartCollection.prototype.onBrushEnd = function () {
-        var startTime = Date.now();
+        //var startTime = Date.now();
 
-        for (var i = 0; i < this.charts.length; i++) {
-            this.charts[i].onBrush.call(this.charts[i], this.chartContext.brush);
-        }
+        //for (var i = 0; i < this.charts.length; i++) {
+        //    this.charts[i].onBrush.call(this.charts[i], this.chartContext.brush);
+        //}
 
-        this.brushTimerAvg = ((0.10 * this.brushTimerAvg) + (0.90 * (Date.now() - startTime))) / 1.9;
+        //this.brushTimerAvg = ((0.10 * this.brushTimerAvg) + (0.90 * (Date.now() - startTime))) / 1.9;
     }
 
     ChartCollection.prototype.update = function (width, height) {
@@ -180,8 +177,11 @@ function ChartCollection(data, volume_data) {
     // Chart annotations
     this.patternAnnotations = [];
 
+    var now = Date.now();
     this.mouseMoveTime = 50; // milliseconds
-    this.mouseMoveTimer = Date.now();
+    this.mouseMoveTimer = now;
+    this.brushTimerAvg = 50; // milliseconds
+    this.onBrushTimer = now;
 
     this.svg = d3.select("#chart")
         .append("svg")
@@ -418,15 +418,15 @@ function ChartContext(contextModel) {
 
     this.context.selectAll(".resize.e").append("rect")
         .attr("class", "contextResizeHandle")
-        .attr("width", this.contextHeight / 3)
+        .attr("width", this.contextHeight / 2)
         .attr("height", this.contextHeight)
         .attr("transform", "translate(0, 0)");
 
     this.context.selectAll(".resize.w").append("rect")
         .attr("class", "contextResizeHandle")
-        .attr("width", this.contextHeight / 3)
+        .attr("width", this.contextHeight / 2)
         .attr("height", this.contextHeight)
-        .attr("transform", "translate(" + (-this.contextHeight / 3) + ", 0)");
+        .attr("transform", "translate(" + (-this.contextHeight / 2) + ", 0)");
 };
 
 function Chart(chartModel) {
@@ -716,7 +716,7 @@ function Chart(chartModel) {
     Chart.prototype.updateCursor = function () {
         var clipRectHeight = this.height - this.margin.top - this.margin.bottom;
 
-        var overlay = this.chartContainer.select(".mouse_overlay")
+        this.chartContainer.select(".mouse_overlay")
             .attr("width", this.width)
             .attr("height", clipRectHeight);
 
@@ -748,8 +748,8 @@ function Chart(chartModel) {
             .range([clipRectHeight, 0])
             .domain(d3.extent(this.chartData.map(this.dataMapFuncY)));
 
-        var xS = this.xScale;
-        var yS = this.yScale;
+        //var xS = this.xScale;
+        //var yS = this.yScale;
         //this.pathFunction
             //.interpolate("monotone")
             //.defined(function (d) { return d.y0 != null && !isNaN(d.y0); })
@@ -871,7 +871,7 @@ function CandlestickChart(chartModel) {
         if (filtered_data.length > 0 && bar_width > this.barMargin.side) {
             // Remove the line chart
             //this.chartContainer.select("path").datum(new Array()).attr("d", this.area);
-            if (prevHasChartPath == true) {
+            if (prevHasChartPath === true) {
                 this.chartContainer.selectAll("path.chart").remove();
                 this.hasChartPath = false;
             }
@@ -880,7 +880,7 @@ function CandlestickChart(chartModel) {
             this.updateOHLC(filtered_data, bar_width);
         }
         else {
-            if (prevHasChartPath == false) {
+            if (prevHasChartPath === false) {
                 // Add the chart path
                 this.chartContainer.insert("path", "g.x.axis")
                     .attr("class", "chart")
@@ -1028,7 +1028,7 @@ function BarChart(chartModel) {
         if (filtered_data.length > 0 && bar_width > this.barMargin.side) {
             // Remove the line chart
             //this.chartContainer.select("path").data([new Array()]).attr("d", this.area);
-            if (this.hasChartPath == true) {
+            if (this.hasChartPath === true) {
                 this.id = this.chartContainer.select("path.chart").attr("id")
                 this.chartContainer.selectAll("path.chart").remove();
                 this.hasChartPath = false;
@@ -1042,7 +1042,7 @@ function BarChart(chartModel) {
             this.chartContainer.selectAll("rect.bar").remove();
 
             //this.chartContainer.select("path").data([filtered_data]).attr("d", this.area);
-            if (this.hasChartPath == false) {
+            if (this.hasChartPath === false) {
                 this.chartContainer.insert("path", "g.x.axis")
                     .attr("class", "chart")
                     .datum(this.chartData)
@@ -1064,7 +1064,7 @@ function BarChart(chartModel) {
         // Draw volume bars
         var xS = this.xScale;
         var yS = this.yScale;
-        var height = this.height - this.margin.top - this.margin.bottom;
+        //var height = this.height - this.margin.top - this.margin.bottom;
 
         var bars = this.chartContainer.selectAll("rect.bar").data(filtered_data);
         bars.attr("class", "bar")
@@ -1198,12 +1198,10 @@ function CanvasCandlestickChart(chartModel) {
         this.xScale.domain(xDomain);
         this.yScale.domain(yDomain);
 
-        //for (var i = 0; i < this.chartIndicators.length; i++) {
-        //    this.chartIndicators[i].onBrush(this.chartContainer, brush);
-        //}
+        for (var i = 0; i < this.chartIndicators.length; i++) {
+            this.chartIndicators[i].onBrush(this.chartContainer, brush, xDomain, xRange);
+        }
 
-
-        var prevHasChartPath = this.hasChartPath;
         var bar_width = 0.40 * (this.width - 2 * this.barMargin.side) / filtered_data.length;
 
         this.chartContainer.select(".x.axis").call(this.xAxis);
@@ -1226,7 +1224,7 @@ function CanvasCandlestickChart(chartModel) {
             var ctx = canvas.getContext('2d');
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (this.hasChartPath == true) {
+            if (this.hasChartPath === true) {
                 drawLineChart(ctx, this, filtered_data);
             }
             else {
@@ -1314,8 +1312,6 @@ function CanvasBarChart(chartModel) {
         //    this.chartIndicators[i].onBrush(this.chartContainer, brush);
         //}
 
-
-        var prevHasChartPath = this.hasChartPath;
         var bar_width = 0.45 * (this.width - 2 * this.barMargin.side) / filtered_data.length;
 
         this.chartContainer.select(".x.axis").call(this.xAxis);
@@ -1337,7 +1333,7 @@ function CanvasBarChart(chartModel) {
             var ctx = canvas.getContext('2d');
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (this.hasChartPath == true) {
+            if (this.hasChartPath === true) {
                 drawLineChart(ctx, this, filtered_data, this.yDomainMin);
             }
             else {
