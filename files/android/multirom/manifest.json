@@ -1,0 +1,22 @@
+{
+    "status": "ok",
+    "date": "2015-07-04",
+    "commands": "",
+    "gpg": false,
+    "devices":
+        [
+            {"files":
+                [
+                    {
+                        "url": "http://Decatf.github.io/files/android/multirom/multirom-20150620-v32-UNOFFICIAL-p4wifi.zip",
+                        "version": "32",
+                        "type": "multirom",
+                        "size": 3636489,
+                        "md5": "44d43c86819440764bdff9f74f89ef42"
+                    },
+
+                ],
+                "name": "p4wifi"
+            }
+        ]
+}
